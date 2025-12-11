@@ -13,8 +13,8 @@ namespace dotNetUtilitiesTester
 
         private void btnGenerate_Click(object sender, EventArgs e)
         {
-            txtResult.Text = Pdf.Generate(txtImagesPath.Text,
-                   txtDestinationPath.Text, Convert.ToInt32(chkLandscape.Checked), Convert.ToInt32(chkOpenPDF.CheckState));
+            //txtResult.Text = Pdf.Generate(txtImagesPath.Text,
+            //       txtDestinationPath.Text, Convert.ToInt32(chkLandscape.Checked), Convert.ToInt32(chkOpenPDF.CheckState));
         }
     }
 }

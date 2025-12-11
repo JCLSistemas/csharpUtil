@@ -50,9 +50,5 @@ namespace dotNetUtilitiesTester
             new frmWebBrowser().Show();
         }
 
-        private void btnGoogleMaps_Click(object sender, EventArgs e)
-        {
-            new frmGoogleMaps().Show();
-        }
     }
 }

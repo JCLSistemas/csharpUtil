@@ -1,19 +1,18 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using System.Text;
 using CSharpUtil.Services;
-using RGiesecke.DllExport;
-//using System.Windows.Forms;
+using CSharpUtil.VivaMoto;
+
 
 namespace CSharpUtil
 {
     internal static class CSharpUtil
     {
         [DllExport("ExportPdf", CallingConvention = CallingConvention.StdCall)]
-
-        public static string ExportPdf(string imagesPath, string destinationPath, int landscape, int pdfOpen)
+        public static string ExportPdf(string imagesPath, string destinationPath, string password)
         {
-            return Pdf.Generate(imagesPath.Trim(), destinationPath.Trim(), landscape, pdfOpen);
+
+            return Pdf.Generate(imagesPath.Trim(), destinationPath.Trim(), password.Trim());
         }
 
         [DllExport("ExportExcel", CallingConvention = CallingConvention.StdCall)]
@@ -24,7 +23,7 @@ namespace CSharpUtil
 
         [DllExport("SendEmail", CallingConvention = CallingConvention.StdCall)]
         public static bool SendEmail(string fromName, string from, string to, string cc, string bcc, string subject,
-                                     string body, string attachments, string user, string password, string smtpHost, 
+                                     string body, string attachments, string user, string password, string smtpHost,
                                      int port, int autentication, int enableSsl, int useDefaultCredentials)
         {
             var result = new EmailKit().Send(fromName, from, to, cc, bcc, subject, body, attachments,
@@ -35,21 +34,19 @@ namespace CSharpUtil
         [DllExport("NewGuid", CallingConvention = CallingConvention.StdCall)]
         public static string NewGuid()
         {
-            return Guid.NewGuid().ToString();
+            return General.NewGuid();
         }
 
         [DllExport("TextToUtf8", CallingConvention = CallingConvention.StdCall)]
         public static string TextToUtf8(string text)
         {
-            var bytes = Encoding.Default.GetBytes(text);
-            return Encoding.UTF8.GetString(bytes);
+            return General.TextToUtf8(text);
         }
 
         [DllExport("Utf8ToText", CallingConvention = CallingConvention.StdCall)]
         public static string Utf8ToText(string text)
         {
-            var bytes = Encoding.UTF8.GetBytes(text);
-            return Encoding.Default.GetString(bytes);
+            return General.Utf8ToText(text);
         }
 
         [DllExport("Code128", CallingConvention = CallingConvention.StdCall)]
@@ -59,9 +56,15 @@ namespace CSharpUtil
         }
 
         [DllExport("CodeInter25", CallingConvention = CallingConvention.StdCall)]
-        public static string CodeInter25(string text, string destinationPath)
+        public static string CodeInter25(string barcode, string destinationPath)
         {
-            return new CodeInter25().Generate(text, destinationPath);
+            return new CodeInter25().Generate(barcode, destinationPath);
+        }
+
+        [DllExport("QRCode", CallingConvention = CallingConvention.StdCall)]
+        public static string CodeQR(string code, string destinationPath)
+        {
+            return new CodeQR().Generate(code, destinationPath);
         }
 
         [DllExport("DirectoryExists", CallingConvention = CallingConvention.StdCall)]
@@ -109,30 +112,113 @@ namespace CSharpUtil
         {
             return DosFiles.GetFileName(filePath);
         }
-        [DllExport("GMapsLatLongByAddress", CallingConvention = CallingConvention.StdCall)]
-        public static string GMapsLatLongByAddress(string token, string address)
-        {
-            //MessageBox.Show("token:" + token + " address:" + address,"csharp.dll");
 
-            GoogleMaps googleMaps = new GoogleMaps(token);
-            //MessageBox.Show("estanciei classe GoogleMaps ","CSharp.dll");
-            return googleMaps.GetLatLongByAddress(address);
+        [DllExport("ViaCepGetAddressByCep", CallingConvention = CallingConvention.StdCall)]
+        public static string ViaCepGetAddressByCep(string CEP)
+        {
+            return ViaCep.GetAddressbyCep(CEP);
         }
 
-        [DllExport("GMapsLatLongByCEP", CallingConvention = CallingConvention.StdCall)]
-        public static string GMapsLatLongByCEP(string token, string CEP)
+        [DllExport("ViaCepGetCepByAddress", CallingConvention = CallingConvention.StdCall)]
+        public static string ViaCepGetCepByAddress(string UF, string Cidade, string Endereco)
         {
-            GoogleMaps googleMaps = new GoogleMaps(token);
-            return googleMaps.GetLatLongByCEP(CEP);
+            return ViaCep.GetCepByAddress(UF, Cidade, Endereco);
         }
 
-        [DllExport("GMapsGetAddressByCEP", CallingConvention = CallingConvention.StdCall)]
-        public static string GMapsGetAddressByCEP(string token, string CEP)
+        [DllExport("ConsultarCNPJ", CallingConvention = CallingConvention.StdCall)]
+        public static string ConsultarCNPJ(string cnpj)
         {
-            GoogleMaps googleMaps = new GoogleMaps(token);
-            return googleMaps.GetAddressByCEP(CEP);
+            return ReceitaWS.ConsultarCNPJ(cnpj);
+        }
+        [DllExport("ConsultarIBPTProdutos", CallingConvention = CallingConvention.StdCall)]
+        public static string ConsultarIBPTProdutos(string _token, string _cnpj, string _NCM, string _uf, string _ex, string _codigoInterno, string _descricaoItem, string _unidadeMedida, string _valor, string _gtin)
+        {
+            return DeOlhonoImpostoWs.ConsultarIBPTProdutos(_token, _cnpj, _NCM, _uf, _ex, _codigoInterno, _descricaoItem, _unidadeMedida, _valor, _gtin);
         }
 
+
+        // VivaMoto API Service export
+        private static VivaMotoApiService _client;
+
+        [DllExport("MtbInicializarAPI", CallingConvention = CallingConvention.StdCall)]
+        public static void MtbInicializarAPI([MarshalAs(UnmanagedType.LPStr)] string urlBase)
+        {
+            _client = new VivaMotoApiService(urlBase);
+        }
+
+        [DllExport("MtbLogin", CallingConvention = CallingConvention.StdCall)]
+        public static bool MtbLogin(string usuario, string senha)
+        {
+            if (_client == null) return false;
+            return _client.Login(usuario, senha);
+        }
+
+        [DllExport("MtbEnviarOS", CallingConvention = CallingConvention.StdCall)]
+        public static bool MtbEnviarOrdem(string jsonOrdem)
+        {
+            if (_client == null) return false;
+            return _client.EnviarOrdem(jsonOrdem);
+        }
+
+        [DllExport("MtbEnviarOSLote", CallingConvention = CallingConvention.StdCall)]
+        public static int MtbEnviarOrdensLote(string jsonOrdens)
+        {
+            if (_client == null) return -1;
+            return _client.EnviarOrdensLote(jsonOrdens);
+        }
+
+        [DllExport("MtbAtualizarStatus", CallingConvention = CallingConvention.StdCall)]
+        public static bool MtbAtualizarStatus(string jsonStatus)
+        {
+            if (_client == null) return false;
+            return _client.AtualizarStatus(jsonStatus);
+        }
+
+        [DllExport("MtbEnviarEmpresa", CallingConvention = CallingConvention.StdCall)]
+        public static bool MtbEnviarEmpresa(string jsonEmpresa)
+        {
+            if (_client == null) return false;
+            return _client.EnviarEmpresa(jsonEmpresa);
+        }
+
+        [DllExport("MtbEnviarUsuario", CallingConvention = CallingConvention.StdCall)]
+        public static bool MtbEnviarUsuario(string jsonUsuario)
+        {
+            if (_client == null) return false;
+            return _client.EnviarUsuario(jsonUsuario);
+        }
+
+        [DllExport("MtbObterUltimoErro", CallingConvention = CallingConvention.StdCall)]
+        [return: MarshalAs(UnmanagedType.LPStr)]
+        public static string MtbObterUltimoErro()
+        {
+            if (_client == null) return "Cliente não inicializado";
+            return _client.ObterUltimoErro();
+        }
+
+        [DllExport("MtbObterToken", CallingConvention = CallingConvention.StdCall)]
+        [return: MarshalAs(UnmanagedType.LPStr)]
+        public static string MtbObterToken()
+        {
+            if (_client == null) return "";
+            return _client.AuthToken;
+        }
+
+        [DllExport("MtbEstaConectado", CallingConvention = CallingConvention.StdCall)]
+        public static bool MtbEstaConectado()
+        {
+            if (_client == null) return false;
+            return _client.EstaConectado;
+        }
+
+        [DllExport("MtbFinalizar", CallingConvention = CallingConvention.StdCall)]
+        public static void MtbFinalizar()
+        {
+            if (_client != null)
+            {
+                _client.Finalizar();
+                _client = null;
+            }
+        }
     }
 }
-

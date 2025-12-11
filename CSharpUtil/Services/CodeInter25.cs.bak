@@ -10,7 +10,7 @@ namespace CSharpUtil.Services
 {
     public class CodeInter25
     {
-        public string Generate(string barcode, string destinationPath)
+        public string Generate(string text, string destinationPath)
         {
             try
             {
@@ -19,32 +19,25 @@ namespace CSharpUtil.Services
                 string pathImage = destinationPath.Trim();
                 BarcodeInter25 codeI25 = new BarcodeInter25
                 {
-                    X = 0.9f,
-                    N = 3,
-                    Size = 10,
+                    Extended = true,
+                    //GenerateChecksum = true,
+                    ChecksumText = true,
+                    BarHeight = 70,
+                    Size = 100,
                     Baseline = 10,
-                    BarHeight = 10,
-                    GenerateChecksum = false,
-                    ChecksumText = false,
-                    Code = barcode
+                    Code = text
                 };
-                Image img = codeI25.CreateDrawingImage(Color.Black, Color.White);
-                img = new Bitmap(img, new Size(800, 65));
+                Image img = codeI25.CreateDrawingImage(Color.White, Color.Black);
+                img = (new Bitmap(img, new Size(800, 100)));
                 img.Save(pathImage.Trim(), ImageFormat.Jpeg);
                 return pathImage.Trim();
             }
             catch (Exception ex)
             {
-                LogService.Add(ex.Message);
                 MessageBox.Show(ex.Message, "Code Inter 2&5");
                 return "";
             }
            
-        }
-
-        public string Generate(string text1, string text2, double v1, double v2, int v3)
-        {
-            throw new NotImplementedException();
         }
     }
 }

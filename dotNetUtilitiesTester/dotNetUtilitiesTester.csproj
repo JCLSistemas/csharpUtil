@@ -146,12 +146,6 @@
     <Compile Include="frmNewGuid.Designer.cs">
       <DependentUpon>frmNewGuid.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmGoogleMaps.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="frmGoogleMaps.Designer.cs">
-      <DependentUpon>frmGoogleMaps.cs</DependentUpon>
-    </Compile>
     <Compile Include="frmWebService.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -192,9 +186,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="frmNewGuid.resx">
       <DependentUpon>frmNewGuid.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="frmGoogleMaps.resx">
-      <DependentUpon>frmGoogleMaps.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="frmWebService.resx">
       <DependentUpon>frmWebService.cs</DependentUpon>

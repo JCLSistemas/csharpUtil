@@ -37,7 +37,6 @@ namespace CSharpUtil.Services
             }
             catch (Exception ex)
             {
-                LogService.Add(ex.Message);
                 MessageBox.Show(ex.Message, "Code128");
                 return "";
             }

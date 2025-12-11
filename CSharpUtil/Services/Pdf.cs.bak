@@ -13,7 +13,7 @@ namespace CSharpUtil.Services
 {
     public static class Pdf
     {
-        public static string Generate(string imagesPath, string destinationPath, string password)
+        public static string Generate(string imagesPath, string destinationPath, int landscape, int pdfOpen)
         {
             try
             {
@@ -45,40 +45,24 @@ namespace CSharpUtil.Services
                                 image.SetAbsolutePosition(0, 0);
                                 pdfDocument.Add(image);
                             }
-                            
                             pdfDocument.Close();
-
-
-                            if (password != "")
-                            {
-                                var cryptoFile = Path.GetDirectoryName(destinationPath) + @"\";
-                                if (!AssertConsern.AssertArgumentValidateFileName(ref cryptoFile, "PDF", ".PDF",
-                                        "O nome do arquívo criptografado é inválido! Modifique o nome do arquivo e tente novamente!", "Geração de PDF"))
-                                {
-                                    return null;
-                                }
-
-                                using (PdfReader reader = new PdfReader(destinationPath))
-                                {
-                                    Stream output = new FileStream(cryptoFile, FileMode.Create, FileAccess.Write, FileShare.None);
-                                    PdfEncryptor.Encrypt(reader, output, true, password, password, PdfWriter.ALLOW_PRINTING);
-                                }
-                                File.Delete(destinationPath);
-                                destinationPath = cryptoFile;
-
-                            }
-
+                            //OpenDocument(destinationPath, pdfOpen);
                             return destinationPath;
                         }
                     }
-                }                
+                }
+
             }
             catch (Exception ex)
             {
-                LogService.Add(ex.Message);
                 MessageBox.Show(ex.Message,"Geração PDF");
-                return null;
+                return "";
             }
+        }
+
+        private static void OpenDocument(string destinationPath, int pdfOpen)
+        {
+            if (pdfOpen == 1) Process.Start(destinationPath);
         }
     }
 }

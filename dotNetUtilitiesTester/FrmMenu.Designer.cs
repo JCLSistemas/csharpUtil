@@ -36,15 +36,14 @@
             this.btnGuid = new System.Windows.Forms.Button();
             this.btnFileManager = new System.Windows.Forms.Button();
             this.btnWebBrowser = new System.Windows.Forms.Button();
-            this.btnGoogleMaps = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // btnPDFGenerator
             // 
-            this.btnPDFGenerator.Location = new System.Drawing.Point(12, 12);
-            this.btnPDFGenerator.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnPDFGenerator.Location = new System.Drawing.Point(9, 10);
+            this.btnPDFGenerator.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnPDFGenerator.Name = "btnPDFGenerator";
-            this.btnPDFGenerator.Size = new System.Drawing.Size(163, 58);
+            this.btnPDFGenerator.Size = new System.Drawing.Size(122, 47);
             this.btnPDFGenerator.TabIndex = 0;
             this.btnPDFGenerator.Text = "PDF Generator";
             this.btnPDFGenerator.UseVisualStyleBackColor = true;
@@ -52,10 +51,10 @@
             // 
             // btnExcelGenerator
             // 
-            this.btnExcelGenerator.Location = new System.Drawing.Point(181, 12);
-            this.btnExcelGenerator.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnExcelGenerator.Location = new System.Drawing.Point(136, 10);
+            this.btnExcelGenerator.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnExcelGenerator.Name = "btnExcelGenerator";
-            this.btnExcelGenerator.Size = new System.Drawing.Size(163, 58);
+            this.btnExcelGenerator.Size = new System.Drawing.Size(122, 47);
             this.btnExcelGenerator.TabIndex = 1;
             this.btnExcelGenerator.Text = "Excel Generator";
             this.btnExcelGenerator.UseVisualStyleBackColor = true;
@@ -63,10 +62,10 @@
             // 
             // btnEmailSender
             // 
-            this.btnEmailSender.Location = new System.Drawing.Point(349, 12);
-            this.btnEmailSender.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnEmailSender.Location = new System.Drawing.Point(262, 10);
+            this.btnEmailSender.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnEmailSender.Name = "btnEmailSender";
-            this.btnEmailSender.Size = new System.Drawing.Size(163, 58);
+            this.btnEmailSender.Size = new System.Drawing.Size(122, 47);
             this.btnEmailSender.TabIndex = 2;
             this.btnEmailSender.Text = "Email Sender";
             this.btnEmailSender.UseVisualStyleBackColor = true;
@@ -74,10 +73,10 @@
             // 
             // btnCode128
             // 
-            this.btnCode128.Location = new System.Drawing.Point(519, 12);
-            this.btnCode128.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnCode128.Location = new System.Drawing.Point(389, 10);
+            this.btnCode128.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnCode128.Name = "btnCode128";
-            this.btnCode128.Size = new System.Drawing.Size(163, 58);
+            this.btnCode128.Size = new System.Drawing.Size(122, 47);
             this.btnCode128.TabIndex = 3;
             this.btnCode128.Text = "Code 128 Generator";
             this.btnCode128.UseVisualStyleBackColor = true;
@@ -85,10 +84,10 @@
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(688, 12);
-            this.button1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button1.Location = new System.Drawing.Point(516, 10);
+            this.button1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(163, 58);
+            this.button1.Size = new System.Drawing.Size(122, 47);
             this.button1.TabIndex = 4;
             this.button1.Text = "Code Inter 2 && 5";
             this.button1.UseVisualStyleBackColor = true;
@@ -96,10 +95,10 @@
             // 
             // btnGuid
             // 
-            this.btnGuid.Location = new System.Drawing.Point(12, 75);
-            this.btnGuid.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnGuid.Location = new System.Drawing.Point(9, 61);
+            this.btnGuid.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnGuid.Name = "btnGuid";
-            this.btnGuid.Size = new System.Drawing.Size(163, 58);
+            this.btnGuid.Size = new System.Drawing.Size(122, 47);
             this.btnGuid.TabIndex = 5;
             this.btnGuid.Text = "New Guid";
             this.btnGuid.UseVisualStyleBackColor = true;
@@ -107,10 +106,10 @@
             // 
             // btnFileManager
             // 
-            this.btnFileManager.Location = new System.Drawing.Point(181, 75);
-            this.btnFileManager.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnFileManager.Location = new System.Drawing.Point(136, 61);
+            this.btnFileManager.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnFileManager.Name = "btnFileManager";
-            this.btnFileManager.Size = new System.Drawing.Size(163, 58);
+            this.btnFileManager.Size = new System.Drawing.Size(122, 47);
             this.btnFileManager.TabIndex = 6;
             this.btnFileManager.Text = "File Manager";
             this.btnFileManager.UseVisualStyleBackColor = true;
@@ -118,32 +117,20 @@
             // 
             // btnWebBrowser
             // 
-            this.btnWebBrowser.Location = new System.Drawing.Point(349, 75);
-            this.btnWebBrowser.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnWebBrowser.Location = new System.Drawing.Point(262, 61);
+            this.btnWebBrowser.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnWebBrowser.Name = "btnWebBrowser";
-            this.btnWebBrowser.Size = new System.Drawing.Size(163, 58);
+            this.btnWebBrowser.Size = new System.Drawing.Size(122, 47);
             this.btnWebBrowser.TabIndex = 7;
             this.btnWebBrowser.Text = "Web Browser";
             this.btnWebBrowser.UseVisualStyleBackColor = true;
             this.btnWebBrowser.Click += new System.EventHandler(this.btnWebBrowser_Click);
             // 
-            // btnGoogleMaps
-            // 
-            this.btnGoogleMaps.Location = new System.Drawing.Point(519, 75);
-            this.btnGoogleMaps.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.btnGoogleMaps.Name = "btnGoogleMaps";
-            this.btnGoogleMaps.Size = new System.Drawing.Size(163, 58);
-            this.btnGoogleMaps.TabIndex = 8;
-            this.btnGoogleMaps.Text = "Google Maps API";
-            this.btnGoogleMaps.UseVisualStyleBackColor = true;
-            this.btnGoogleMaps.Click += new System.EventHandler(this.btnGoogleMaps_Click);
-            // 
             // frmMenu
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(865, 140);
-            this.Controls.Add(this.btnGoogleMaps);
+            this.ClientSize = new System.Drawing.Size(649, 114);
             this.Controls.Add(this.btnWebBrowser);
             this.Controls.Add(this.btnFileManager);
             this.Controls.Add(this.btnGuid);
@@ -152,7 +139,7 @@
             this.Controls.Add(this.btnEmailSender);
             this.Controls.Add(this.btnExcelGenerator);
             this.Controls.Add(this.btnPDFGenerator);
-            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "frmMenu";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Menu de Testes";
@@ -170,7 +157,6 @@
         private System.Windows.Forms.Button btnGuid;
         private System.Windows.Forms.Button btnFileManager;
         private System.Windows.Forms.Button btnWebBrowser;
-        private System.Windows.Forms.Button btnGoogleMaps;
     }
 }
 

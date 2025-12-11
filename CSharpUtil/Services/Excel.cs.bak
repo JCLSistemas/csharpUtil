@@ -57,7 +57,6 @@ namespace CSharpUtil.Services
             }
             catch (Exception ex)
             {
-                LogService.Add(ex.Message);
                 MessageBox.Show(ex.Message);
                 return "";
             }
@@ -90,7 +89,6 @@ namespace CSharpUtil.Services
             }
             catch (Exception ex)
             {
-                LogService.Add(ex.Message);
                 MessageBox.Show(ex.ToString());
                 return false;
             }

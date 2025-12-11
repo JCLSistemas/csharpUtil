@@ -1,7 +1,8 @@
-﻿namespace CSharpUtil.Services
-{
-    class Certificado
-    {
+﻿using System;
 
+namespace CSharpUtil.Services
+{
+    public class Certificado
+    {
     }
 }

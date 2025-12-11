@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using System.Text;
 
 namespace CSharpUtil.Services
@@ -13,9 +12,8 @@ namespace CSharpUtil.Services
             {
                 return Directory.Exists(directoryPath.Trim());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                LogService.Add(ex.Message);
                 return false;
             }
             
@@ -28,9 +26,8 @@ namespace CSharpUtil.Services
                 Directory.CreateDirectory(directoryPath.Trim());
                 return Directory.Exists(directoryPath.Trim());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                LogService.Add(ex.Message);
                 return false;
             }
         }
@@ -43,9 +40,8 @@ namespace CSharpUtil.Services
                 Directory.Delete(directoryPath.Trim(), filesAndSubDirectories);
                 return Directory.Exists(directoryPath.Trim()) == false ? true : false;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                LogService.Add(ex.Message);
                 return false;
             }
         }
@@ -54,10 +50,8 @@ namespace CSharpUtil.Services
         {
             try
             {
-                //var files = Directory.GetFiles(topDirectoryPath, FileToSearch, (SearchOption)allSubDirectories);
+                var files = Directory.GetFiles(topDirectoryPath, FileToSearch, (SearchOption)allSubDirectories);
 
-                var files = Directory.EnumerateFiles(topDirectoryPath, FileToSearch, (SearchOption)allSubDirectories).Where(s => s.Contains("recycle") == false);
-                                       
                 StringBuilder searchedFiles = new StringBuilder();
                 foreach (var file in files)
                 {
@@ -65,27 +59,23 @@ namespace CSharpUtil.Services
                 }
                 return searchedFiles.ToString();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                LogService.Add(ex.Message);
-                System.Windows.Forms.MessageBox.Show(ex.Message);                
+                return "";
             }
 
-            return "";
         }
-
         public static bool FileExists(string filePath)
         {
             try
             {
                 return File.Exists(filePath.Trim());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                LogService.Add(ex.Message);                
+                return false;
             }
 
-            return false;
         }
 
         public static bool FileDelete(string filePath)
@@ -95,9 +85,8 @@ namespace CSharpUtil.Services
                 File.Delete(filePath.Trim());
                 return File.Exists(filePath.Trim()) == false ? true : false;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                LogService.Add(ex.Message);
                 return false;
             }
         }
@@ -108,9 +97,8 @@ namespace CSharpUtil.Services
             {
                 return Path.GetDirectoryName(filePath);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                LogService.Add(ex.Message);
                 return "";
             }
         }
@@ -120,11 +108,12 @@ namespace CSharpUtil.Services
             {
                 return Path.GetFileName(filePath);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                LogService.Add(ex.Message);
                 return "";
             }
         }
+
+
     }
 }
