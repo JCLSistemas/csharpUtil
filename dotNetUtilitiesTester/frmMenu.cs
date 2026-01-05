@@ -50,5 +50,9 @@ namespace dotNetUtilitiesTester
             new frmWebBrowser().Show();
         }
 
+        private void btnVivamoto_Click(object sender, EventArgs e)
+        {
+            new frmVivaMoto().Show();
+        }
     }
 }

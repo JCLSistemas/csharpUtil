@@ -36,12 +36,13 @@
             this.btnGuid = new System.Windows.Forms.Button();
             this.btnFileManager = new System.Windows.Forms.Button();
             this.btnWebBrowser = new System.Windows.Forms.Button();
+            this.btnVivamoto = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // btnPDFGenerator
             // 
             this.btnPDFGenerator.Location = new System.Drawing.Point(9, 10);
-            this.btnPDFGenerator.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.btnPDFGenerator.Margin = new System.Windows.Forms.Padding(2);
             this.btnPDFGenerator.Name = "btnPDFGenerator";
             this.btnPDFGenerator.Size = new System.Drawing.Size(122, 47);
             this.btnPDFGenerator.TabIndex = 0;
@@ -52,7 +53,7 @@
             // btnExcelGenerator
             // 
             this.btnExcelGenerator.Location = new System.Drawing.Point(136, 10);
-            this.btnExcelGenerator.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.btnExcelGenerator.Margin = new System.Windows.Forms.Padding(2);
             this.btnExcelGenerator.Name = "btnExcelGenerator";
             this.btnExcelGenerator.Size = new System.Drawing.Size(122, 47);
             this.btnExcelGenerator.TabIndex = 1;
@@ -63,7 +64,7 @@
             // btnEmailSender
             // 
             this.btnEmailSender.Location = new System.Drawing.Point(262, 10);
-            this.btnEmailSender.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.btnEmailSender.Margin = new System.Windows.Forms.Padding(2);
             this.btnEmailSender.Name = "btnEmailSender";
             this.btnEmailSender.Size = new System.Drawing.Size(122, 47);
             this.btnEmailSender.TabIndex = 2;
@@ -74,7 +75,7 @@
             // btnCode128
             // 
             this.btnCode128.Location = new System.Drawing.Point(389, 10);
-            this.btnCode128.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.btnCode128.Margin = new System.Windows.Forms.Padding(2);
             this.btnCode128.Name = "btnCode128";
             this.btnCode128.Size = new System.Drawing.Size(122, 47);
             this.btnCode128.TabIndex = 3;
@@ -85,7 +86,7 @@
             // button1
             // 
             this.button1.Location = new System.Drawing.Point(516, 10);
-            this.button1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.button1.Margin = new System.Windows.Forms.Padding(2);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(122, 47);
             this.button1.TabIndex = 4;
@@ -96,7 +97,7 @@
             // btnGuid
             // 
             this.btnGuid.Location = new System.Drawing.Point(9, 61);
-            this.btnGuid.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.btnGuid.Margin = new System.Windows.Forms.Padding(2);
             this.btnGuid.Name = "btnGuid";
             this.btnGuid.Size = new System.Drawing.Size(122, 47);
             this.btnGuid.TabIndex = 5;
@@ -107,7 +108,7 @@
             // btnFileManager
             // 
             this.btnFileManager.Location = new System.Drawing.Point(136, 61);
-            this.btnFileManager.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.btnFileManager.Margin = new System.Windows.Forms.Padding(2);
             this.btnFileManager.Name = "btnFileManager";
             this.btnFileManager.Size = new System.Drawing.Size(122, 47);
             this.btnFileManager.TabIndex = 6;
@@ -118,7 +119,7 @@
             // btnWebBrowser
             // 
             this.btnWebBrowser.Location = new System.Drawing.Point(262, 61);
-            this.btnWebBrowser.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.btnWebBrowser.Margin = new System.Windows.Forms.Padding(2);
             this.btnWebBrowser.Name = "btnWebBrowser";
             this.btnWebBrowser.Size = new System.Drawing.Size(122, 47);
             this.btnWebBrowser.TabIndex = 7;
@@ -126,11 +127,23 @@
             this.btnWebBrowser.UseVisualStyleBackColor = true;
             this.btnWebBrowser.Click += new System.EventHandler(this.btnWebBrowser_Click);
             // 
+            // btnVivamoto
+            // 
+            this.btnVivamoto.Location = new System.Drawing.Point(389, 61);
+            this.btnVivamoto.Margin = new System.Windows.Forms.Padding(2);
+            this.btnVivamoto.Name = "btnVivamoto";
+            this.btnVivamoto.Size = new System.Drawing.Size(122, 47);
+            this.btnVivamoto.TabIndex = 8;
+            this.btnVivamoto.Text = "VivaMoto";
+            this.btnVivamoto.UseVisualStyleBackColor = true;
+            this.btnVivamoto.Click += new System.EventHandler(this.btnVivamoto_Click);
+            // 
             // frmMenu
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(649, 114);
+            this.Controls.Add(this.btnVivamoto);
             this.Controls.Add(this.btnWebBrowser);
             this.Controls.Add(this.btnFileManager);
             this.Controls.Add(this.btnGuid);
@@ -139,7 +152,7 @@
             this.Controls.Add(this.btnEmailSender);
             this.Controls.Add(this.btnExcelGenerator);
             this.Controls.Add(this.btnPDFGenerator);
-            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "frmMenu";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Menu de Testes";
@@ -157,6 +170,7 @@
         private System.Windows.Forms.Button btnGuid;
         private System.Windows.Forms.Button btnFileManager;
         private System.Windows.Forms.Button btnWebBrowser;
+        private System.Windows.Forms.Button btnVivamoto;
     }
 }
 

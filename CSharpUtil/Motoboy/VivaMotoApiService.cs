@@ -1,12 +1,19 @@
+using CSharpUtil.Motoboy.Dto;
+using CSharpUtil.Services;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
+using System.Windows.Forms;
 
-namespace CSharpUtil.VivaMoto
+namespace CSharpUtil.Motoboy
 {
     public class VivaMotoApiService
     {
@@ -15,6 +22,7 @@ namespace CSharpUtil.VivaMoto
         private string _authToken = "";
         private string _ultimoErro = "";
         private bool _inicializado = false;
+        private bool _debugAtivo = false;
 
         public string UltimoErro => _ultimoErro;
         public string AuthToken => _authToken;
@@ -24,11 +32,19 @@ namespace CSharpUtil.VivaMoto
         /// Inicializa o serviço VivaMoto com a URL base da API.
         /// Configura o HttpClient com timeout de 60 segundos e headers padrão para JSON.
         /// </summary>
-        /// <param name="baseUrl">URL base da API VivaMoto (ex: http://localhost:5000 ou https://vivamoto.onrender.com ou https://api.vivamoto.com)</param>
+        /// <param name="baseUrl">URL base da API VivaMoto 
+        /// (ex: http://localhost:5000 
+        ///     ou https://vivamoto.onrender.com 
+        ///     ou https://api.vivamoto.com)</param>
         public VivaMotoApiService(string baseUrl)
         {
             try
             {
+                ServicePointManager.SecurityProtocol =
+                    SecurityProtocolType.Tls12 |
+                    SecurityProtocolType.Tls11 |
+                    SecurityProtocolType.Tls;
+
                 _baseUrl = baseUrl.TrimEnd('/');
                 _httpClient = new HttpClient
                 {
@@ -40,28 +56,104 @@ namespace CSharpUtil.VivaMoto
 
                 _inicializado = true;
                 _ultimoErro = "";
+
+                // Sempre grava log de inicialização (mesmo sem debug ativo)
+                LogService.AddToSubfolder("VivaMotoApiService inicializado. BaseUrl: " + _baseUrl, "VivaMoto_Inicio");
             }
             catch (Exception ex)
             {
                 _inicializado = false;
                 _ultimoErro = $"Erro ao inicializar: {ex.Message}";
+                LogService.AddToSubfolder("ERRO ao inicializar: " + ex.ToString(), "VivaMoto_Inicio");
             }
 
         }
 
         /// <summary>
-        /// Autentica o usuário na API VivaMoto e obtém o token de autenticação Bearer.
-        /// O token é armazenado automaticamente e usado nas próximas requisições.
+        /// Ativa ou desativa o modo debug que grava logs detalhados em arquivo.
+        /// Os logs são gravados na pasta \Log dentro do diretório da DLL.
         /// </summary>
-        /// <param name="email">Email do usuário para login</param>
-        /// <param name="senha">Senha do usuário</param>
-        /// <returns>True se o login foi bem-sucedido, False caso contrário. Verifique UltimoErro em caso de falha.</returns>
-        public bool Login(string email, string senha)
+        /// <param name="ativar">1 para ativar, 0 para desativar</param>
+        public void ConfigurarDebug(int ativar)
         {
+            _debugAtivo = (ativar == 1);
+            
+            // Sempre grava este log, independente do estado do debug
+            LogService.AddToSubfolder(
+                string.Format("Debug {0}", _debugAtivo ? "ATIVADO" : "DESATIVADO"), 
+                "VivaMoto_Config"
+            );
+        }
+
+        private void LogDebug(string mensagem)
+        {
+            if (_debugAtivo)
+            {
+                LogService.AddToSubfolder(mensagem, "VivaMoto_Debug");
+            }
+        }
+
+        private void LogHttpDetails(string method, string endpoint, string requestBody, HttpResponseMessage response, string responseBody)
+        {
+            if (!_debugAtivo) return;
+
+            try
+            {
+                var requestHeaders = new StringBuilder();
+                if (_httpClient?.DefaultRequestHeaders != null)
+                {
+                    foreach (var header in _httpClient.DefaultRequestHeaders)
+                    {
+                        requestHeaders.AppendLine(string.Format("{0}: {1}", header.Key, string.Join(", ", header.Value)));
+                    }
+                }
+
+                var responseHeaders = new StringBuilder();
+                if (response?.Headers != null)
+                {
+                    foreach (var header in response.Headers)
+                    {
+                        responseHeaders.AppendLine(string.Format("{0}: {1}", header.Key, string.Join(", ", header.Value)));
+                    }
+                }
+                if (response?.Content?.Headers != null)
+                {
+                    foreach (var header in response.Content.Headers)
+                    {
+                        responseHeaders.AppendLine(string.Format("{0}: {1}", header.Key, string.Join(", ", header.Value)));
+                    }
+                }
+
+                string responseStatus = response != null 
+                    ? string.Format("{0} ({1})", (int)response.StatusCode, response.ReasonPhrase)
+                    : "N/A";
+
+                LogService.LogHttpRequest(
+                    method,
+                    _baseUrl + endpoint,
+                    requestHeaders.ToString(),
+                    requestBody ?? "",
+                    responseStatus,
+                    responseHeaders.ToString(),
+                    responseBody ?? ""
+                );
+            }
+            catch (Exception ex)
+            {
+                LogDebug("Erro ao gravar log HTTP: " + ex.Message);
+            }
+        }
+
+        public int Login(string email, string senha)
+        {
+            LogDebug("=== INICIANDO LOGIN ===");
+            LogDebug("Email: " + email);
+
             if (!_inicializado || _httpClient == null)
             {
                 _ultimoErro = "Cliente não inicializado. Chame Inicializar primeiro.";
-                return false;
+                LogDebug("ERRO: " + _ultimoErro);
+                return 0;
             }
 
             try
@@ -70,11 +162,18 @@ namespace CSharpUtil.VivaMoto
                 var json = JsonConvert.SerializeObject(loginData);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
+                LogDebug("Request Body: " + json);
+                LogDebug("Content-Type: " + content.Headers.ContentType?.ToString());
+
                 var response = _httpClient.PostAsync("/api/v1/auth/login", content).Result;
                 var responseString = response.Content.ReadAsStringAsync().Result;
 
+                LogHttpDetails("POST", "/api/v1/auth/login", json, response, responseString);
+
                 if (response.IsSuccessStatusCode)
                 {
+                    LogDebug("Response IsSuccessStatusCode: True");
+
                     var loginResponse = JsonConvert.DeserializeObject<LoginResponseDto>(responseString);
 
                     if (loginResponse?.Sucesso == true && !string.IsNullOrEmpty(loginResponse.Token))
@@ -82,59 +181,95 @@ namespace CSharpUtil.VivaMoto
                         _authToken = loginResponse.Token;
                         _httpClient.DefaultRequestHeaders.Authorization =
                             new AuthenticationHeaderValue("Bearer", _authToken);
+
+                        LogDebug("Login bem-sucedido. Token obtido (primeiros 20 chars): " + 
+                            (_authToken.Length > 20 ? _authToken.Substring(0, 20) + "..." : _authToken));
+
                         _ultimoErro = "";
-                        return true;
+                        return 1;
                     }
 
                     _ultimoErro = loginResponse?.Mensagem ?? "Login falhou sem mensagem de erro.";
-                    return false;
+                    LogDebug("ERRO: " + _ultimoErro);
+                    return 0;
                 }
 
                 _ultimoErro = $"HTTP {(int)response.StatusCode}: {responseString}";
-                return false;
+                LogDebug("ERRO: " + _ultimoErro);
+                return 0;
             }
             catch (Exception ex)
             {
                 _ultimoErro = $"Exceção no login: {ex.Message}";
-                return false;
+                LogDebug("EXCEÇÃO: " + ex.ToString());
+                return 0;
             }
         }
 
-        /// <summary>
-        /// Envia uma ordem de serviço para sincronização.
-        /// </summary>
-        /// <param name="jsonOrdem">JSON da ordem no formato OrdemServicoDto</param>
-        /// <returns>1 = sucesso, 0 = falha</returns>
-        public bool EnviarOrdem(string jsonOrdem)
+        public int EnviarOrdem(string jsonOrdem)
         {
-            if (!ValidarAutenticacao()) return false;
+            LogDebug("=== ENVIANDO ORDEM ===");
+            LogDebug("JSON Recebido: " + jsonOrdem);
+
+            if (ValidarAutenticacao() == 0) return 0;
 
             try
             {
-                // Deserializa a ordem individual
-                var ordem = JsonConvert.DeserializeObject<OrdemServicoSyncDto>(jsonOrdem);
+                OrdemServicoSyncDto ordem = null;
+
+                // Verifica se o JSON já vem no formato {"Ordens": [...]} do Clarion
+                if (jsonOrdem.TrimStart().StartsWith("{") && jsonOrdem.Contains("\"Ordens\""))
+                {
+                    // JSON está no formato wrapper - extrair a primeira ordem
+                    var wrapper = JsonConvert.DeserializeObject<OrdemRequestWrapper>(jsonOrdem);
+                    if (wrapper?.Ordens != null && wrapper.Ordens.Count > 0)
+                    {
+                        ordem = wrapper.Ordens[0];
+                        LogDebug("Ordem extraída do wrapper - Id: " + ordem.Id + ", Numero: " + ordem.Numero + ", EmpresaId: " + ordem.EmpresaId);
+                    }
+                }
+                else
+                {
+                    // JSON é de uma ordem única (sem wrapper)
+                    ordem = JsonConvert.DeserializeObject<OrdemServicoSyncDto>(jsonOrdem);
+                }
 
                 if (ordem == null)
                 {
-                    _ultimoErro = "JSON da Ordem de Serviço inválido.";
-                    return false;
+                    _ultimoErro = "JSON da Ordem de Serviço inválido ou vazio.";
+                    LogDebug("ERRO: " + _ultimoErro);
+                    return 0;
                 }
 
-                // Envolve em um array conforme API espera
+                LogDebug("Ordem a enviar - Id: " + ordem.Id + ", Numero: " + ordem.Numero + ", EmpresaId: " + ordem.EmpresaId);
+
                 var request = new { Ordens = new[] { ordem } };
-                var json = JsonConvert.SerializeObject(request);
+                
+                // Configurar para ignorar valores null na serialização
+                var settings = new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore
+                };
+                var json = JsonConvert.SerializeObject(request, settings);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                LogDebug("Request Body: " + json);
+                LogDebug("Request Body Length: " + json.Length);
+                LogDebug("Content-Type: " + content.Headers.ContentType?.ToString());
 
                 var response = _httpClient.PostAsync("/api/v1/sync/ordens", content).Result;
                 var responseString = response.Content.ReadAsStringAsync().Result;
+
+                LogHttpDetails("POST", "/api/v1/sync/ordens", json, response, responseString);
 
                 if (response.IsSuccessStatusCode)
                 {
                     var syncResponse = JsonConvert.DeserializeObject<SyncResponseDto>(responseString);
                     if (syncResponse != null && syncResponse.Sucesso)
                     {
+                        LogDebug("Ordem enviada com sucesso");
                         _ultimoErro = "";
-                        return true;
+                        return 1;
                     }
                     else
                     {
@@ -143,30 +278,30 @@ namespace CSharpUtil.VivaMoto
                         {
                             _ultimoErro += " Detalhes: " + string.Join("; ", syncResponse.Erros);
                         }
-                        return false;
+                        LogDebug("ERRO: " + _ultimoErro);
+                        return 0;
                     }
                 }
                 else
                 {
                     _ultimoErro = $"HTTP {(int)response.StatusCode}: {responseString}";
-                    return false;
+                    LogDebug("ERRO: " + _ultimoErro);
+                    return 0;
                 }
             }
             catch (Exception ex)
             {
                 _ultimoErro = $"Exceção ao enviar ordem: {ex.Message}";
-                return false;
+                LogDebug("EXCEÇÃO: " + ex.ToString());
+                return 0;
             }
         }
 
-        /// <summary>
-        /// Envia múltiplas ordens de serviço em lote.
-        /// </summary>
-        /// <param name="jsonOrdens">JSON array de ordens no formato [OrdemServicoDto, ...]</param>
-        /// <returns>Quantidade de ordens processadas com sucesso, -1 = erro</returns>
         public int EnviarOrdensLote(string jsonOrdens)
         {
-            if (!ValidarAutenticacao()) return -1;
+            LogDebug("=== ENVIANDO ORDENS EM LOTE ===");
+
+            if (ValidarAutenticacao() == 0) return 0;
 
             try
             {
@@ -175,15 +310,29 @@ namespace CSharpUtil.VivaMoto
                 if (ordens == null || ordens.Count == 0)
                 {
                     _ultimoErro = "Lista de ordens vazia ou JSON inválido.";
-                    return -1;
+                    LogDebug("ERRO: " + _ultimoErro);
+                    return 0;
                 }
 
+                LogDebug("Quantidade de ordens: " + ordens.Count);
+
                 var request = new { Ordens = ordens };
-                var json = JsonConvert.SerializeObject(request);
+                
+                // Configurar para ignorar valores null na serialização
+                var settings = new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore
+                };
+                var json = JsonConvert.SerializeObject(request, settings);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                LogDebug("Request Body Length: " + json.Length);
+                LogDebug("Content-Type: " + content.Headers.ContentType?.ToString());
 
                 var response = _httpClient.PostAsync("/api/v1/sync/ordens", content).Result;
                 var responseString = response.Content.ReadAsStringAsync().Result;
+
+                LogHttpDetails("POST", "/api/v1/sync/ordens", json, response, responseString);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -193,139 +342,174 @@ namespace CSharpUtil.VivaMoto
                         if (syncResponse.Erros?.Count > 0)
                         {
                             _ultimoErro = string.Join("; ", syncResponse.Erros);
+                            LogDebug("ERROS: " + _ultimoErro);
                         }
                         else
                         {
                             _ultimoErro = "";
+                            LogDebug("Lote enviado com sucesso. Total Sucesso: " + syncResponse.TotalSucesso);
                         }
-                        return syncResponse.TotalSucesso;
+                        return syncResponse.TotalSucesso > 0 ? 1 : 0;
                     }
                 }
 
                 _ultimoErro = $"HTTP {(int)response.StatusCode}: {responseString}";
-                return -1;
+                LogDebug("ERRO: " + _ultimoErro);
+                return 0;
             }
             catch (Exception ex)
             {
                 _ultimoErro = $"Exceção ao enviar lote: {ex.Message}";
-                return -1;
+                LogDebug("EXCEÇÃO: " + ex.ToString());
+                return 0;
             }
         }
 
-        /// <summary>
-        /// Atualiza o status de uma ordem de serviço.
-        /// </summary>
-        /// <param name="jsonStatus">JSON do update no formato StatusUpdateDto</param>
-        /// <returns>1 = sucesso, 0 = falha</returns>
-        public bool AtualizarStatus(string jsonStatus)
+        public int AtualizarStatus(string jsonStatus)
         {
-            if (!ValidarAutenticacao()) return false;
+            LogDebug("=== ATUALIZANDO STATUS ===");
+
+            if (ValidarAutenticacao() == 0) return 0;
 
             try
             {
-                var statusUpdate = JsonConvert.DeserializeObject<StatusUpdateDto>(jsonStatus);
+                var statusUpdate = JsonConvert.DeserializeObject<StatusUpdateSyncDto>(jsonStatus);
 
                 if (statusUpdate == null)
                 {
                     _ultimoErro = "JSON de status inválido.";
-                    return false;
+                    LogDebug("ERRO: " + _ultimoErro);
+                    return 0;
                 }
 
                 var request = new { Updates = new[] { statusUpdate } };
                 var json = JsonConvert.SerializeObject(request);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
+                LogDebug("Request Body: " + json);
+                LogDebug("Content-Type: " + content.Headers.ContentType?.ToString());
+
                 var response = _httpClient.PostAsync("/api/v1/sync/status", content).Result;
                 var responseString = response.Content.ReadAsStringAsync().Result;
+
+                LogHttpDetails("POST", "/api/v1/sync/status", json, response, responseString);
 
                 if (response.IsSuccessStatusCode)
                 {
                     var syncResponse = JsonConvert.DeserializeObject<SyncResponseDto>(responseString);
                     if (syncResponse != null && syncResponse.Sucesso)
                     {
+                        LogDebug("Status atualizado com sucesso");
                         _ultimoErro = "";
-                        return true;
+                        return 1;
                     }
                     else
                     {
                         _ultimoErro = syncResponse?.Mensagem ?? "Atualização de status falhou.";
-                        return false;
+                        LogDebug("ERRO: " + _ultimoErro);
+                        return 0;
                     }
                 }
                 else
                 {
                     _ultimoErro = $"HTTP {(int)response.StatusCode}: {responseString}";
-                    return false;
+                    LogDebug("ERRO: " + _ultimoErro);
+                    return 0;
                 }
             }
             catch (Exception ex)
             {
                 _ultimoErro = $"Exceção ao atualizar status: {ex.Message}";
-                return false;
+                LogDebug("EXCEÇÃO: " + ex.ToString());
+                return 0;
             }
         }
 
-        /// <summary>
-        /// Sincroniza dados de empresa.
-        /// </summary>
-        /// <param name="jsonEmpresa">JSON da empresa no formato EmpresaDto</param>
-        /// <returns>1 = sucesso, 0 = falha</returns>
-        public bool EnviarEmpresa(string jsonEmpresa)
+        public int EnviarEmpresa(string jsonEmpresa)
         {
-            if (!ValidarAutenticacao()) return false;
+            LogDebug("=== ENVIANDO EMPRESA ===");
+            LogDebug("JSON Original do Clarion: " + jsonEmpresa);
+
+            if (ValidarAutenticacao() == 0) return 0;
 
             try
             {
-                var empresa = JsonConvert.DeserializeObject<EmpresaDto>(jsonEmpresa);
+                EmpresaSyncDto empresa = null;
+
+                // Verifica se o JSON já vem no formato {"Empresas": [...]} do Clarion
+                if (jsonEmpresa.TrimStart().StartsWith("{") && jsonEmpresa.Contains("\"Empresas\""))
+                {
+                    // JSON está no formato wrapper - extrair a primeira empresa
+                    var wrapper = JsonConvert.DeserializeObject<EmpresaRequestWrapper>(jsonEmpresa);
+                    if (wrapper?.Empresas != null && wrapper.Empresas.Count > 0)
+                    {
+                        empresa = wrapper.Empresas[0];
+                        LogDebug("Empresa extraída do wrapper - Id: " + empresa.Id + ", Nome: " + empresa.Nome);
+                    }
+                }
+                else
+                {
+                    // JSON é de uma empresa única (sem wrapper)
+                    empresa = JsonConvert.DeserializeObject<EmpresaSyncDto>(jsonEmpresa);
+                }
 
                 if (empresa == null)
                 {
-                    _ultimoErro = "JSON da empresa inválido.";
-                    return false;
+                    _ultimoErro = "JSON da Empresa inválido ou vazio.";
+                    LogDebug("ERRO: " + _ultimoErro);
+                    return 0;
                 }
+
+                LogDebug("Empresa a enviar - Id: " + empresa.Id + ", Nome: " + empresa.Nome + ", Cnpj: " + empresa.Cnpj);
 
                 var request = new { Empresas = new[] { empresa } };
                 var json = JsonConvert.SerializeObject(request);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
+                LogDebug("Request Body: " + json);
+                LogDebug("Content-Type: " + content.Headers.ContentType?.ToString());
+
                 var response = _httpClient.PostAsync("/api/v1/sync/empresas", content).Result;
                 var responseString = response.Content.ReadAsStringAsync().Result;
+
+                LogHttpDetails("POST", "/api/v1/sync/empresas", json, response, responseString);
 
                 if (response.IsSuccessStatusCode)
                 {
                     var syncResponse = JsonConvert.DeserializeObject<SyncResponseDto>(responseString);
                     if (syncResponse != null && syncResponse.Sucesso)
                     {
+                        LogDebug("Empresa enviada com sucesso");
                         _ultimoErro = "";
-                        return true;
+                        return 1;
                     }
                     else
                     {
                         _ultimoErro = syncResponse?.Mensagem ?? "Sincronização de empresa falhou.";
-                        return false;
+                        LogDebug("ERRO: " + _ultimoErro);
+                        return 0;
                     }
                 }
                 else
                 {
                     _ultimoErro = $"HTTP {(int)response.StatusCode}: {responseString}";
-                    return false;
+                    LogDebug("ERRO: " + _ultimoErro);
+                    return 0;
                 }
             }
             catch (Exception ex)
             {
                 _ultimoErro = $"Exceção ao sincronizar empresa: {ex.Message}";
-                return false;
+                LogDebug("EXCEÇÃO: " + ex.ToString());
+                return 0;
             }
         }
 
-        /// <summary>
-        /// Sincroniza dados de usuário.
-        /// </summary>
-        /// <param name="jsonUsuario">JSON do usuário no formato UsuarioSyncDto</param>
-        /// <returns>1 = sucesso, 0 = falha</returns>
-        public bool EnviarUsuario(string jsonUsuario)
+        public int EnviarUsuario(string jsonUsuario)
         {
-            if (!ValidarAutenticacao()) return false;
+            LogDebug("=== ENVIANDO USUÁRIO ===");
+
+            if (ValidarAutenticacao() == 0) return 0;
 
             try
             {
@@ -334,41 +518,64 @@ namespace CSharpUtil.VivaMoto
                 if (usuario == null)
                 {
                     _ultimoErro = "JSON do usuário inválido.";
-                    return false;
+                    LogDebug("ERRO: " + _ultimoErro);
+                    return 0;
                 }
 
                 var request = new { Usuarios = new[] { usuario } };
                 var json = JsonConvert.SerializeObject(request);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
+                LogDebug("Request Body: " + json);
+                LogDebug("Content-Type: " + content.Headers.ContentType?.ToString());
+
                 var response = _httpClient.PostAsync("/api/v1/sync/usuarios", content).Result;
                 var responseString = response.Content.ReadAsStringAsync().Result;
+
+                LogHttpDetails("POST", "/api/v1/sync/usuarios", json, response, responseString);
 
                 if (response.IsSuccessStatusCode)
                 {
                     var syncResponse = JsonConvert.DeserializeObject<SyncResponseDto>(responseString);
                     if (syncResponse != null && syncResponse.Sucesso)
                     {
+                        LogDebug("Usuário enviado com sucesso");
                         _ultimoErro = "";
-                        return true;
+                        return 1;
                     }
                     else
                     {
                         _ultimoErro = syncResponse?.Mensagem ?? "Sincronização de usuário falhou.";
-                        return false;
+                        LogDebug("ERRO: " + _ultimoErro);
+                        return 0;
                     }
                 }
                 else
                 {
                     _ultimoErro = $"HTTP {(int)response.StatusCode}: {responseString}";
-                    return false;
+                    LogDebug("ERRO: " + _ultimoErro);
+                    return 0;
                 }
             }
             catch (Exception ex)
             {
                 _ultimoErro = $"Exceção ao sincronizar usuário: {ex.Message}";
-                return false;
+                LogDebug("EXCEÇÃO: " + ex.ToString());
+                return 0;
             }
+        } 
+
+        /// <summary>
+        /// Gera um hash SHA-256 da senha fornecida e retorna em formato Base64.
+        /// Utilizado para criar senhas seguras antes de enviar à API.
+        /// </summary>
+        /// <param name="password">Senha em texto plano a ser hasheada</param>
+        /// <returns>Hash SHA-256 da senha codificado em Base64</returns>
+        public string ObterSenhaHash(string password)
+        {
+            var sha256 = SHA256.Create();
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            return Convert.ToBase64String(hashedBytes);
         }
 
         /// <summary>
@@ -381,158 +588,33 @@ namespace CSharpUtil.VivaMoto
             return _ultimoErro;
         }
 
-        /// <summary>
-        /// Valida se o serviço está inicializado e autenticado.
-        /// Define a propriedade UltimoErro com mensagem apropriada em caso de falha.
-        /// </summary>
-        /// <returns>True se está inicializado e autenticado, False caso contrário</returns>
-        private bool ValidarAutenticacao()
+        private int ValidarAutenticacao()
         {
             if (!_inicializado || _httpClient == null)
             {
                 _ultimoErro = "Cliente não inicializado.";
-                return false;
+                LogDebug("ERRO ValidarAutenticacao: " + _ultimoErro);
+                return 0;
             }
 
             if (string.IsNullOrEmpty(_authToken))
             {
                 _ultimoErro = "Não autenticado. Chame Login primeiro.";
-                return false;
+                LogDebug("ERRO ValidarAutenticacao: " + _ultimoErro);
+                return 0;
             }
 
-            return true;
+            return 1;
         }
 
-        /// <summary>
-        /// Finaliza o cliente e libera recursos.
-        /// </summary>
         public void Finalizar()
         {
+            LogDebug("=== FINALIZANDO VIVAMOTOAPISERVICE ===");
             _httpClient?.Dispose();
             _httpClient = null;
             _authToken = "";
             _ultimoErro = "";
             _inicializado = false;
         }
-
-
     }
-
-    #region DTOs Internos
-
-    internal class LoginResponseDto
-    {
-        public bool Sucesso { get; set; }
-        public string Token { get; set; } = string.Empty;
-        public string Mensagem { get; set; } = string.Empty;
-    }
-
-    internal class SyncResponseDto
-    {
-        public bool Sucesso { get; set; }
-        public string Mensagem { get; set; } = string.Empty;
-        public int TotalProcessados { get; set; }
-        public int TotalSucesso { get; set; }
-        public int TotalErros { get; set; }
-        public List<string> Erros { get; set; } = new List<string>();
-    }
-
-    /// <summary>
-    /// DTO para sincronização de Ordem de Serviço.
-    /// Espelha o OrdemServicoDto da API.
-    /// </summary>
-    internal class OrdemServicoSyncDto
-    {
-        public int Id { get; set; }
-        public int Numero { get; set; }
-        public DateTime? DataEmissao { get; set; }
-        public int EmpresaId { get; set; }
-        public string EmpresaNome { get; set; } = string.Empty;
-        public string SolicitanteNome { get; set; } = string.Empty;
-        public string Departamento { get; set; } = string.Empty;
-        public string Telefone { get; set; } = string.Empty;
-        public string Ramal { get; set; } = string.Empty;
-        public string EnderecoEntrega { get; set; } = string.Empty;
-        public int? MotoboyId { get; set; }
-        public string MotoboyNome { get; set; } = string.Empty;
-
-        // Datas e Horários
-        public string HoraInicial { get; set; } = string.Empty; // TimeSpan como string "HH:mm:ss"
-        public DateTime? DataFinal { get; set; }
-        public string HoraFinal { get; set; } = string.Empty;
-
-        // Tempos (TimeSpan como string "HH:mm:ss")
-        public string TempoTotal { get; set; } = string.Empty;
-        public string TempoMinimo { get; set; } = string.Empty;
-        public string TempoExecucao { get; set; } = string.Empty;
-        public string HorasServico { get; set; } = string.Empty;
-        public string HorasExtras { get; set; } = string.Empty;
-        public string HorasAdicional { get; set; } = string.Empty;
-        public string HorasEspera { get; set; } = string.Empty;
-
-        // Quantidades
-        public decimal? QuantidadeKm { get; set; }
-        public decimal? QuantidadePontos { get; set; }
-        public decimal? QuantidadePontosAdicionais { get; set; }
-
-        // Valores Unitários
-        public decimal? ValorHora { get; set; }
-        public decimal? ValorExtra { get; set; }
-        public decimal? ValorHoraEspera { get; set; }
-        public decimal? ValorViagem { get; set; }
-        public decimal? ValorPonto { get; set; }
-        public decimal? ValorAdicional { get; set; }
-        public decimal? ValorKm { get; set; }
-
-        // Totais
-        public decimal? TotalHoras { get; set; }
-        public decimal? TotalHorasEspera { get; set; }
-        public decimal? TotalExtras { get; set; }
-        public decimal? TotalKm { get; set; }
-        public decimal? TotalPontos { get; set; }
-        public decimal? ValorDesconto { get; set; }
-        public decimal? ValorTotal { get; set; }
-
-        // Faturamento
-        public string CondicaoFaturamento { get; set; } = string.Empty;
-        public int? PrazoPagamento { get; set; }
-        public int? NumeroFatura { get; set; }
-        public DateTime? DataFaturamento { get; set; }
-        public DateTime? DataVencimento { get; set; }
-
-        // Sistema
-        public string Usuario { get; set; } = string.Empty;
-        public DateTime? DataAtualizacao { get; set; }
-
-        // Status: usar valor inteiro do enum ou string
-        // 0=Pendente, 1=EmAndamento, 2=EmEntrega, 3=Entregue, 4=Cancelada, 5=Retornada
-        public int Status { get; set; }
-    }
-
-    internal class StatusUpdateDto
-    {
-        public string IdOs { get; set; } = string.Empty;
-        public string EmpresaId { get; set; } = string.Empty;
-        public string NovoStatus { get; set; } = string.Empty;
-        public string Observacao { get; set; } = string.Empty;
-    }
-
-    internal class EmpresaDto
-    {
-        public int Id { get; set; }
-        public string Nome { get; set; } = string.Empty;
-        public string Cnpj { get; set; } = string.Empty;
-        public string Telefone { get; set; } = string.Empty;
-        public bool Ativo { get; set; }
-    }
-
-    internal class UsuarioSyncDto
-    {
-        public string Email { get; set; } = string.Empty;
-        public string SenhaHash { get; set; } = string.Empty;
-        public string Nome { get; set; } = string.Empty;
-        public bool Ativo { get; set; } = true;
-        public List<int> EmpresaIds { get; set; } = new List<int>();
-    }
-    #endregion DTOs Internos
 }

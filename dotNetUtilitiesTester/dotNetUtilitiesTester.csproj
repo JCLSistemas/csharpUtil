@@ -95,6 +95,9 @@
     <StartupObject>dotNetUtilitiesTester.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
@@ -146,6 +149,12 @@
     <Compile Include="frmNewGuid.Designer.cs">
       <DependentUpon>frmNewGuid.cs</DependentUpon>
     </Compile>
+    <Compile Include="frmVivaMoto.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmVivamoto.Designer.cs">
+      <DependentUpon>frmVivaMoto.cs</DependentUpon>
+    </Compile>
     <Compile Include="frmWebService.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -187,6 +196,9 @@
     <EmbeddedResource Include="frmNewGuid.resx">
       <DependentUpon>frmNewGuid.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="frmVivaMoto.resx">
+      <DependentUpon>frmVivaMoto.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="frmWebService.resx">
       <DependentUpon>frmWebService.cs</DependentUpon>
     </EmbeddedResource>
@@ -206,6 +218,7 @@
     <EmbeddedResource Include="webbrowser.resx">
       <DependentUpon>webbrowser.cs</DependentUpon>
     </EmbeddedResource>
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>

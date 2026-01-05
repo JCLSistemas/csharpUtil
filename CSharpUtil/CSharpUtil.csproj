@@ -147,6 +147,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CSharpUtil.cs" />
+    <Compile Include="Motoboy\Dto\EmpresaRequestWrapper.cs" />
+    <Compile Include="Motoboy\Dto\EmpresaSyncDto.cs" />
+    <Compile Include="Motoboy\Dto\LoginResponseDto.cs" />
+    <Compile Include="Motoboy\Dto\OrdemRequestWrapper.cs" />
+    <Compile Include="Motoboy\Dto\OrdemServicoSyncDto.cs" />
+    <Compile Include="Motoboy\Dto\StatusUpdateSyncDto.cs" />
+    <Compile Include="Motoboy\Dto\SyncResponseDto.cs" />
+    <Compile Include="Motoboy\Dto\UsuarioSyncDto.cs" />
+    <Compile Include="Motoboy\Helper\JsonFieldHelper.cs" />
     <Compile Include="Motoboy\VivaMotoApiService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\Code128.cs" />
@@ -160,6 +169,7 @@
     <Compile Include="Services\MD5.cs" />
     <Compile Include="Services\Receitaws.cs" />
     <Compile Include="Services\ViaCep.cs" />
+    <Compile Include="Services\VivaMotoClientDtos.cs" />
     <Compile Include="Services\WebService.cs" />
     <Compile Include="Validation\AssertConsern.cs" />
     <Compile Include="Services\Certificado.cs" />
@@ -169,6 +179,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+    <None Include="Motoboy\README_LOGGING.md" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
