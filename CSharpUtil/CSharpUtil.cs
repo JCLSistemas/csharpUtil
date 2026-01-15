@@ -1,15 +1,27 @@
 ﻿using CSharpUtil.Motoboy;
 using CSharpUtil.Motoboy.Helper;
 using CSharpUtil.Services;
-using System;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
+using System.Windows;
 
 
 namespace CSharpUtil
 {
     internal static class CSharpUtil
     {
+        [DllExport("ObterVersaoDLL", CallingConvention = CallingConvention.StdCall)]
+        public static string ObterVersaoDLL()
+        {
+            return General.ObterVersaoDLL();
+        }
+
+        [DllExport("ObterInfoVersao", CallingConvention = CallingConvention.StdCall)]
+        public static string ObterInfoVersao()
+        {
+            return General.ObterInfoVersao();
+        }
+
+
         [DllExport("ExportPdf", CallingConvention = CallingConvention.StdCall)]
         public static string ExportPdf(string imagesPath, string destinationPath, string password)
         {
@@ -141,18 +153,11 @@ namespace CSharpUtil
 
         // VivaMoto API Service export
         private static VivaMotoApiService _client;
-        private static bool _debugAtivoPendente = false;
 
         [DllExport("MtbInicializarAPI", CallingConvention = CallingConvention.StdCall)]
         public static void MtbInicializarAPI([MarshalAs(UnmanagedType.LPStr)] string urlBase)
         {
             _client = new VivaMotoApiService(urlBase);
-            
-            // Se debug foi configurado antes de inicializar, aplica agora
-            if (_debugAtivoPendente)
-            {
-                _client.ConfigurarDebug(1);
-            }
         }
 
         [DllExport("MtbLogin", CallingConvention = CallingConvention.StdCall)]
@@ -166,32 +171,26 @@ namespace CSharpUtil
         [DllExport("MtbConfigurarDebug", CallingConvention = CallingConvention.StdCall)]
         public static void MtbConfigurarDebug(int ativar)
         {
-            // Permite configurar debug antes ou depois de inicializar
-            _debugAtivoPendente = (ativar == 1);
-            
-            if (_client != null)
-            {
-                _client.ConfigurarDebug(ativar);
-            }
+
         }
 
         [DllExport("MtbEnviarOS", CallingConvention = CallingConvention.StdCall)]
+        //public static int MtbEnviarOS([MarshalAs(UnmanagedType.BStr)] string jsonOrdem)
         public static int MtbEnviarOS(string jsonOrdem)
         {
             if (_client == null) return 0;
-            return _client.EnviarOrdem(jsonOrdem.Trim());
+            return _client.EnviarOrdens(jsonOrdem.Trim());
         }
 
         [DllExport("MtbEnviarOSLote", CallingConvention = CallingConvention.StdCall)]
-        
+        //public static int MtbEnviarOSLote([MarshalAs(UnmanagedType.BStr)] string jsonOrdens)
         public static int MtbEnviarOSLote(string jsonOrdens)
         {
             if (_client == null) return 0;
-            return _client.EnviarOrdensLote(jsonOrdens.Trim());
+            return _client.EnviarOrdens(jsonOrdens.Trim());
         }
 
         [DllExport("MtbAtualizarStatus", CallingConvention = CallingConvention.StdCall)]
-        
         public static int MtbAtualizarStatus(string jsonStatus)
         {
             if (_client == null) return 0;
@@ -203,7 +202,7 @@ namespace CSharpUtil
         public static int MtbEnviarEmpresa(string jsonEmpresa)
         {
             if (_client == null) return 0;
-            return _client.EnviarEmpresa(jsonEmpresa.Trim());
+            return _client.EnviarEmpresas(jsonEmpresa.Trim());
         }
 
         [DllExport("MtbEnviarUsuario", CallingConvention = CallingConvention.StdCall)]
@@ -211,27 +210,34 @@ namespace CSharpUtil
         public static int MtbEnviarUsuario(string jsonUsuario)
         {
             if (_client == null) return 0;
-            return _client.EnviarUsuario(jsonUsuario.Trim());
+            return _client.EnviarUsuarios(jsonUsuario.Trim());
         }
 
         [DllExport("MtbObterSenhaHash", CallingConvention = CallingConvention.StdCall)]
-        [return: MarshalAs(UnmanagedType.BStr)]
+        //[return: MarshalAs(UnmanagedType.BStr)]
+        //public static string MtbObterSenhaHash([MarshalAs(UnmanagedType.BStr)] string password)
         public static string MtbObterSenhaHash(string password)
         {
-            if (_client == null) return string.Empty;
-            return _client.ObterSenhaHash(password.Trim());
+            //return _client.ObterSenhaHash(password.Trim());
+
+            var result = _client.ObterSenhaHash(password.Trim());
+            return result;
         }
 
         [DllExport("MtbObterUltimoErro", CallingConvention = CallingConvention.StdCall)]
-        [return: MarshalAs(UnmanagedType.LPStr)]
         public static string MtbObterUltimoErro()
         {
             if (_client == null) return "Cliente não inicializado";
             return _client.ObterUltimoErro();
         }
 
+        [DllExport("MtbObterUltimaResposta", CallingConvention = CallingConvention.StdCall)]
+        public static string MtbObterUltimaResposta()
+        {
+            return _client.ObterUltimaResposta();
+        }
+
         [DllExport("MtbObterToken", CallingConvention = CallingConvention.StdCall)]
-        [return: MarshalAs(UnmanagedType.LPStr)]
         public static string MtbObterToken()
         {
             if (_client == null) return "";
@@ -260,10 +266,9 @@ namespace CSharpUtil
         /// Escapa uma string para uso seguro em JSON.
         /// Função exportada para consumo via Clarion.
         /// </summary>
-        [DllExport("JsonEscape", CallingConvention = CallingConvention.StdCall)]
+        [DllExport("MtbJsonEscape", CallingConvention = CallingConvention.StdCall)]
         [return: MarshalAs(UnmanagedType.BStr)]
-        public static string JsonEscape(
-            [MarshalAs(UnmanagedType.BStr)] string texto)
+        public static string MtbJsonEscape(string texto)
         {
             return JsonFieldHelper.Escape(texto.Trim());
         }

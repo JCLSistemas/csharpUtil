@@ -4,10 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace CSharpUtil.Motoboy.Helper
 {
-    internal static class JsonFieldHelper
+    public static class JsonFieldHelper
     {
         /// <summary>
         /// Escapa corretamente uma string para uso seguro dentro de JSON.
@@ -18,13 +19,20 @@ namespace CSharpUtil.Motoboy.Helper
         {
             if (string.IsNullOrEmpty(value))
                 return string.Empty;
-
+            //MessageBox.Show("JsonEscape 1");
             // Serializa como string JSON válida
             // Ex: "texto\nlinha"  →  "\"texto\\nlinha\""
             var json = JsonConvert.SerializeObject(value);
 
+            //MessageBox.Show("JsonEscape 2");
+
             // Remove as aspas externas
-            return json.Substring(1, json.Length - 2);
+            json = json.Substring(1, json.Length - 2);
+
+            //MessageBox.Show("JsonEscape 3");
+
+            return json.Trim();
+            //return json.Substring(1, json.Length - 2);
         }
     }
 }

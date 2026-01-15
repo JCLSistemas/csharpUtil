@@ -5,7 +5,6 @@ using System.Net;
 using System.Net.Http;
 using System.Windows.Forms;
 
-
 namespace CSharpUtil.Services
 {
     public static class ReceitaWS

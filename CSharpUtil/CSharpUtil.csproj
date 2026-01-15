@@ -147,14 +147,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CSharpUtil.cs" />
-    <Compile Include="Motoboy\Dto\EmpresaRequestWrapper.cs" />
-    <Compile Include="Motoboy\Dto\EmpresaSyncDto.cs" />
-    <Compile Include="Motoboy\Dto\LoginResponseDto.cs" />
-    <Compile Include="Motoboy\Dto\OrdemRequestWrapper.cs" />
-    <Compile Include="Motoboy\Dto\OrdemServicoSyncDto.cs" />
-    <Compile Include="Motoboy\Dto\StatusUpdateSyncDto.cs" />
-    <Compile Include="Motoboy\Dto\SyncResponseDto.cs" />
-    <Compile Include="Motoboy\Dto\UsuarioSyncDto.cs" />
     <Compile Include="Motoboy\Helper\JsonFieldHelper.cs" />
     <Compile Include="Motoboy\VivaMotoApiService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -169,7 +161,6 @@
     <Compile Include="Services\MD5.cs" />
     <Compile Include="Services\Receitaws.cs" />
     <Compile Include="Services\ViaCep.cs" />
-    <Compile Include="Services\VivaMotoClientDtos.cs" />
     <Compile Include="Services\WebService.cs" />
     <Compile Include="Validation\AssertConsern.cs" />
     <Compile Include="Services\Certificado.cs" />
@@ -179,8 +170,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="Motoboy\README_LOGGING.md" />
+    <None Include="Directory.Build.props" />
     <None Include="packages.config" />
+    <None Include="UpdateVersion.ps1" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="FEW.ICO" />
@@ -192,6 +184,7 @@
       <Wz>1</Wz>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <ImportGroup Label=".NET DllExport">
     <Import Project="$(DllExportDir)packages\DllExport.1.8.1\tools\net.r_eg.DllExport.targets" Condition="Exists($([MSBuild]::Escape('$(DllExportDir)packages\DllExport.1.8.1\tools\net.r_eg.DllExport.targets')))" Label="8337224c9ad9e356" />

@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Necessário para versionamento automático com AssemblyVersion("1.0.*") -->
+    <Deterministic>false</Deterministic>
+  </PropertyGroup>
+</Project>

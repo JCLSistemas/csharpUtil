@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
+using System.Windows;
 
 namespace CSharpUtil.Services
 {
@@ -39,8 +37,10 @@ namespace CSharpUtil.Services
             {
                 string dllPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
                 string logPath = Path.Combine(dllPath, "Log");
-                string nameFile = string.Format("{0}_{1:yyyyMMdd}.log", prefix, DateTime.Now);
+                string nameFile = string.Format("{0:yyyy-MM-dd}_{1}.log", DateTime.Now, prefix);
                 string fullPath = Path.Combine(logPath, nameFile);
+
+                //MessageBox.Show(@"fullPath = "+fullPath+" - mensagem: "+message);
 
                 if (!Directory.Exists(logPath))
                 {
