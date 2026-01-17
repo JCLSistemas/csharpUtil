@@ -1,13 +1,16 @@
 ﻿using CSharpUtil.Motoboy;
 using CSharpUtil.Motoboy.Helper;
 using CSharpUtil.Services;
+using System;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Windows;
 
 
 namespace CSharpUtil
 {
-    internal static class CSharpUtil
+    public static class CSharpUtil
     {
         [DllExport("ObterVersaoDLL", CallingConvention = CallingConvention.StdCall)]
         public static string ObterVersaoDLL()
@@ -21,11 +24,9 @@ namespace CSharpUtil
             return General.ObterInfoVersao();
         }
 
-
         [DllExport("ExportPdf", CallingConvention = CallingConvention.StdCall)]
         public static string ExportPdf(string imagesPath, string destinationPath, string password)
         {
-
             return Pdf.Generate(imagesPath.Trim(), destinationPath.Trim(), password.Trim());
         }
 
@@ -36,8 +37,8 @@ namespace CSharpUtil
         }
 
         [DllExport("SendEmail", CallingConvention = CallingConvention.StdCall)]
-        public static bool SendEmail(string fromName, string from, string to, string cc, string bcc, string subject,
-                                     string body, string attachments, string user, string password, string smtpHost,
+        public static bool SendEmail(string fromName, string from, string to, string cc, string bcc, 
+                                     string subject, string body, string attachments, string user, string password, string smtpHost,
                                      int port, int autentication, int enableSsl, int useDefaultCredentials)
         {
             var result = new EmailKit().Send(fromName, from, to, cc, bcc, subject, body, attachments,
@@ -116,11 +117,13 @@ namespace CSharpUtil
         {
             return DosFiles.FileDelete(filePath);
         }
+
         [DllExport("GetDirectory", CallingConvention = CallingConvention.StdCall)]
         public static string GetDirectory(string filePath)
         {
             return DosFiles.GetDirectory(filePath);
         }
+
         [DllExport("GetFileName", CallingConvention = CallingConvention.StdCall)]
         public static string GetFileName(string filePath)
         {
@@ -144,8 +147,10 @@ namespace CSharpUtil
         {
             return ReceitaWS.ConsultarCNPJ(cnpj);
         }
+
         [DllExport("ConsultarIBPTProdutos", CallingConvention = CallingConvention.StdCall)]
-        public static string ConsultarIBPTProdutos(string _token, string _cnpj, string _NCM, string _uf, string _ex, string _codigoInterno, string _descricaoItem, string _unidadeMedida, string _valor, string _gtin)
+        public static string ConsultarIBPTProdutos(string _token, string _cnpj, string _NCM, string _uf, string _ex, string _codigoInterno, 
+                                                    string _descricaoItem, string _unidadeMedida, string _valor, string _gtin)
         {
             return DeOlhonoImpostoWs.ConsultarIBPTProdutos(_token, _cnpj, _NCM, _uf, _ex, _codigoInterno, _descricaoItem, _unidadeMedida, _valor, _gtin);
         }
@@ -175,16 +180,16 @@ namespace CSharpUtil
         }
 
         [DllExport("MtbEnviarOS", CallingConvention = CallingConvention.StdCall)]
-        //public static int MtbEnviarOS([MarshalAs(UnmanagedType.BStr)] string jsonOrdem)
         public static int MtbEnviarOS(string jsonOrdem)
+        //public static int MtbEnviarOS(string jsonOrdem)
         {
             if (_client == null) return 0;
             return _client.EnviarOrdens(jsonOrdem.Trim());
         }
 
         [DllExport("MtbEnviarOSLote", CallingConvention = CallingConvention.StdCall)]
-        //public static int MtbEnviarOSLote([MarshalAs(UnmanagedType.BStr)] string jsonOrdens)
         public static int MtbEnviarOSLote(string jsonOrdens)
+        //public static int MtbEnviarOSLote(string jsonOrdens)
         {
             if (_client == null) return 0;
             return _client.EnviarOrdens(jsonOrdens.Trim());
@@ -214,14 +219,21 @@ namespace CSharpUtil
         }
 
         [DllExport("MtbObterSenhaHash", CallingConvention = CallingConvention.StdCall)]
-        //[return: MarshalAs(UnmanagedType.BStr)]
-        //public static string MtbObterSenhaHash([MarshalAs(UnmanagedType.BStr)] string password)
         public static string MtbObterSenhaHash(string password)
         {
-            //return _client.ObterSenhaHash(password.Trim());
+            if (string.IsNullOrEmpty(password))
+                return "";
 
-            var result = _client.ObterSenhaHash(password.Trim());
+            SHA256 sha256 = SHA256.Create();
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            var result = Convert.ToBase64String(hashedBytes);
             return result;
+
+            //return _client.ObterSenhaHash(password.Trim());
+            //MessageBox.Show("Teste - ObterSenhaHash");
+            //string result = password.Trim() + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            //MessageBox.Show(result);
+            //return result;
         }
 
         [DllExport("MtbObterUltimoErro", CallingConvention = CallingConvention.StdCall)]
@@ -262,12 +274,7 @@ namespace CSharpUtil
             }
         }
 
-        /// <summary>
-        /// Escapa uma string para uso seguro em JSON.
-        /// Função exportada para consumo via Clarion.
-        /// </summary>
         [DllExport("MtbJsonEscape", CallingConvention = CallingConvention.StdCall)]
-        [return: MarshalAs(UnmanagedType.BStr)]
         public static string MtbJsonEscape(string texto)
         {
             return JsonFieldHelper.Escape(texto.Trim());

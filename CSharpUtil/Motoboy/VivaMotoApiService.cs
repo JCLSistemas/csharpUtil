@@ -277,7 +277,7 @@ namespace CSharpUtil.Motoboy
         /// </summary>
         public int EnviarOrdens(string jsonOrdens)
         {
-            LogDebug("EnviarPost(\"/api/v1/sync/ordens\", jsonOrdens)");
+            LogDebug("EnviarPost(\"/api/v1/sync/ordens \""+jsonOrdens+")");
 
             return EnviarPost("/api/v1/sync/ordens", jsonOrdens);
         }
@@ -311,19 +311,27 @@ namespace CSharpUtil.Motoboy
         /// </summary>
         public string ObterSenhaHash(string password)
         {
-            MessageBox.Show("Entre ObterSenhaHash: " + password);
+            //MessageBox.Show("Entre ObterSenhaHash: " + password);
 
             if (string.IsNullOrEmpty(password))
                 return "";
 
-            using (var sha256 = SHA256.Create())
-            {
-                MessageBox.Show("Senha: " + password);
-                var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-                var result = Convert.ToBase64String(hashedBytes);
-                MessageBox.Show("Senha Hash: " + result);
-                return result;
-            }
+            SHA256 sha256 = SHA256.Create();
+            //MessageBox.Show("Senha: " + password);
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            var result = Convert.ToBase64String(hashedBytes);
+            //MessageBox.Show("Senha Hash: " + result);
+            return result;
+            
+
+            //using (var sha256 = SHA256.Create())
+            //{
+            //    MessageBox.Show("Senha: " + password);
+            //    var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            //    var result = Convert.ToBase64String(hashedBytes);
+            //    MessageBox.Show("Senha Hash: " + result);
+            //    return result;
+            //}
         }
 
         /// <summary>
