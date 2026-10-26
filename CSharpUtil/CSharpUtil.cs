@@ -165,12 +165,33 @@ namespace CSharpUtil
             _client = new VivaMotoApiService(urlBase);
         }
 
+        [DllExport("MtbInicializarAPIComChave", CallingConvention = CallingConvention.StdCall)]
+        public static void MtbInicializarAPIComChave([MarshalAs(UnmanagedType.LPStr)] string urlBase, [MarshalAs(UnmanagedType.LPStr)] string chaveSync)
+        {
+            _client = new VivaMotoApiService(urlBase, chaveSync);
+        }
+
+        [DllExport("MtbConfigurarChave", CallingConvention = CallingConvention.StdCall)]
+        public static void MtbConfigurarChave([MarshalAs(UnmanagedType.LPStr)] string chaveSync)
+        {
+            if (_client != null)
+            {
+                _client.ConfigurarChave(chaveSync);
+            }
+        }
+
         [DllExport("MtbLogin", CallingConvention = CallingConvention.StdCall)]
-        //[return: MarshalAs(UnmanagedType.I4)]
-        public static int MtbLogin(string usuario, string senha)
+        public static int MtbLogin(string chaveSync, string usuario)
         {
             if (_client == null) return 0;
-            return _client.Login(usuario, senha);
+            return _client.Login(chaveSync, usuario);
+        }
+
+        [DllExport("MtbLoginChave", CallingConvention = CallingConvention.StdCall)]
+        public static int MtbLoginChave(string chaveSync)
+        {
+            if (_client == null) return 0;
+            return _client.Login(chaveSync, "");
         }
 
         [DllExport("MtbConfigurarDebug", CallingConvention = CallingConvention.StdCall)]
@@ -181,7 +202,6 @@ namespace CSharpUtil
 
         [DllExport("MtbEnviarOS", CallingConvention = CallingConvention.StdCall)]
         public static int MtbEnviarOS(string jsonOrdem)
-        //public static int MtbEnviarOS(string jsonOrdem)
         {
             if (_client == null) return 0;
             return _client.EnviarOrdens(jsonOrdem.Trim());
@@ -189,7 +209,6 @@ namespace CSharpUtil
 
         [DllExport("MtbEnviarOSLote", CallingConvention = CallingConvention.StdCall)]
         public static int MtbEnviarOSLote(string jsonOrdens)
-        //public static int MtbEnviarOSLote(string jsonOrdens)
         {
             if (_client == null) return 0;
             return _client.EnviarOrdens(jsonOrdens.Trim());
@@ -224,16 +243,11 @@ namespace CSharpUtil
             if (string.IsNullOrEmpty(password))
                 return "";
 
-            SHA256 sha256 = SHA256.Create();
-            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            var result = Convert.ToBase64String(hashedBytes);
-            return result;
-
-            //return _client.ObterSenhaHash(password.Trim());
-            //MessageBox.Show("Teste - ObterSenhaHash");
-            //string result = password.Trim() + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            //MessageBox.Show(result);
-            //return result;
+            using (var sha256 = SHA256.Create())
+            {
+                var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+                return Convert.ToBase64String(hashedBytes);
+            }
         }
 
         [DllExport("MtbObterUltimoErro", CallingConvention = CallingConvention.StdCall)]
@@ -246,6 +260,7 @@ namespace CSharpUtil
         [DllExport("MtbObterUltimaResposta", CallingConvention = CallingConvention.StdCall)]
         public static string MtbObterUltimaResposta()
         {
+            if (_client == null) return "";
             return _client.ObterUltimaResposta();
         }
 
