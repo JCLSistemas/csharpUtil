@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Release (x86)",
+      "type": "shell",
+      "command": ".\\packages\\DllExport.1.8.1\\hMSBuild.bat",
+      "args": [
+        "CSharpUtil.sln",
+        "/p:Configuration=Release",
+        "/p:Platform=x86"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Build Debug (AnyCPU)",
+      "type": "shell",
+      "command": ".\\packages\\DllExport.1.8.1\\hMSBuild.bat",
+      "args": [
+        "CSharpUtil.sln",
+        "/p:Configuration=Debug",
+        "/p:Platform=\"Any CPU\""
+      ],
+      "group": "build",
+      "problemMatcher": "$msCompile"
+    }
+  ]
+}
+
