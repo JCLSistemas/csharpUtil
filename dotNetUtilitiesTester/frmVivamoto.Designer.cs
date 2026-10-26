@@ -169,10 +169,10 @@ namespace dotNetUtilitiesTester
             this.cboTipoEnvio.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cboTipoEnvio.FormattingEnabled = true;
             this.cboTipoEnvio.Items.AddRange(new object[] {
-            "Empresas (/api/v1/sync/empresas)",
-            "Ordens (/api/v1/sync/ordens)",
-            "Usuários (/api/v1/sync/usuarios)",
-            "Status (/api/v1/sync/status)"});
+            "Empresas (/api/sync/empresas)",
+            "Ordens (/api/sync/ordens)",
+            "Usuários (/api/sync/usuarios)",
+            "Status (/api/sync/status)"});
             this.cboTipoEnvio.Location = new System.Drawing.Point(90, 24);
             this.cboTipoEnvio.Name = "cboTipoEnvio";
             this.cboTipoEnvio.Size = new System.Drawing.Size(280, 23);

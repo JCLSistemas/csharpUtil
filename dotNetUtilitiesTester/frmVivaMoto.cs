@@ -12,7 +12,7 @@ namespace dotNetUtilitiesTester
         public frmVivaMoto()
         {
             InitializeComponent();
-            txtbaseUrl.Text = "https://vivamoto.onrender.com/";
+            txtbaseUrl.Text = "https://vivamoto-backend.onrender.com";
             txtUsuario.Text = "admin@fewwords.com.br";
             txtSenha.Text = "fwords10";
             cboTipoEnvio.SelectedIndex = 0;
@@ -143,7 +143,7 @@ namespace dotNetUtilitiesTester
                 txtResult.Text += $"URL: {txtbaseUrl.Text.Trim()}\r\n";
                 txtResult.Text += $"Usuário: {txtUsuario.Text.Trim()}\r\n\r\n";
 
-                int loginResult = client.Login(txtUsuario.Text.Trim(), txtSenha.Text);
+                int loginResult = 1; //client.Login(txtUsuario.Text.Trim(), txtSenha.Text);
 
                 if (loginResult == 1)
                 {
