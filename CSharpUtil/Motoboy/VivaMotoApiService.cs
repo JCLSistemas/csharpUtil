@@ -1,67 +1,337 @@
 using CSharpUtil.Services;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
-using System.Windows;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace CSharpUtil.Motoboy
 {
-    public class VivaMotoApiService
+    public class VivaMotoApiService : IDisposable
     {
         private HttpClient _httpClient = null;
         private string _baseUrl = "";
-        private string _authToken = "";
+        private string _syncKey = "";
         private string _ultimoErro = "";
         private string _ultimaResposta = "";
         private bool _inicializado = false;
 
         public string UltimoErro => _ultimoErro;
         public string UltimaResposta => _ultimaResposta;
-        public string AuthToken => _authToken;
-        public bool EstaConectado => _inicializado && !string.IsNullOrEmpty(_authToken);
+        public string AuthToken => _syncKey;
+        public bool EstaConectado => _inicializado && !string.IsNullOrEmpty(_syncKey);
 
         /// <summary>
-        /// Inicializa o serviço VivaMoto com a URL base da API.
-        /// Configura o HttpClient com timeout de 60 segundos e headers padrão para JSON.
+        /// Inicializa o serviço com a URL base da API e opcionalmente a chave de sincronização.
+        /// Configura TLS moderno (TLS 1.2 / 1.3), timeout e headers padrão.
         /// </summary>
-        public VivaMotoApiService(string baseUrl)
+        public VivaMotoApiService(string baseUrl, string syncKey = "")
+        {
+            Inicializar(baseUrl, syncKey);
+        }
+
+        public void Inicializar(string baseUrl, string syncKey = "")
         {
             try
             {
-                ServicePointManager.SecurityProtocol =
-                    SecurityProtocolType.Tls12 |
-                    SecurityProtocolType.Tls11 |
-                    SecurityProtocolType.Tls;
+                // Configuração segura de TLS (TLS 1.2 e TLS 1.3)
+                const SecurityProtocolType Tls13 = (SecurityProtocolType)12288;
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | Tls13;
 
-                _baseUrl = baseUrl.TrimEnd('/');
+                _baseUrl = (baseUrl ?? "").Trim().TrimEnd('/') + "/";
+                _syncKey = (syncKey ?? "").Trim();
+
+                _httpClient?.Dispose();
                 _httpClient = new HttpClient
                 {
                     BaseAddress = new Uri(_baseUrl),
                     Timeout = TimeSpan.FromSeconds(60)
                 };
+
+                _httpClient.DefaultRequestHeaders.Accept.Clear();
                 _httpClient.DefaultRequestHeaders.Accept.Add(
                     new MediaTypeWithQualityHeaderValue("application/json"));
 
+                if (!string.IsNullOrEmpty(_syncKey))
+                {
+                    _httpClient.DefaultRequestHeaders.Remove("X-Sync-Key");
+                    _httpClient.DefaultRequestHeaders.Add("X-Sync-Key", _syncKey);
+                }
+
                 _inicializado = true;
                 _ultimoErro = "";
-
-                //LogService.AddToSubfolder("VivaMotoApiService inicializado. BaseUrl: " + _baseUrl, "VivaMoto_Inicio");
             }
             catch (Exception ex)
             {
                 _inicializado = false;
                 _ultimoErro = $"Erro ao inicializar: {ex.Message}";
-                LogService.AddToSubfolder("ERRO ao inicializar: " + ex.ToString(), "VivaMoto_Inicio");
+                LogService.AddToSubfolder("ERRO ao inicializar: " + ex, "VivaMoto_Inicio");
             }
         }
+
+        /// <summary>
+        /// Define ou atualiza a chave de integração X-Sync-Key.
+        /// </summary>
+        public void ConfigurarChave(string syncKey)
+        {
+            _syncKey = (syncKey ?? "").Trim();
+            if (_httpClient != null && !string.IsNullOrEmpty(_syncKey))
+            {
+                _httpClient.DefaultRequestHeaders.Remove("X-Sync-Key");
+                _httpClient.DefaultRequestHeaders.Add("X-Sync-Key", _syncKey);
+            }
+        }
+
+        /// <summary>
+        /// Realiza o login configurando e validando a chave de integração (X-Sync-Key) na API.
+        /// Envia uma sonda de teste para comprovar conectividade e autorização na API.
+        /// </summary>
+        /// <param name="chaveSync">Chave de integração secreta (X-Sync-Key) configurada no portal.</param>
+        /// <param name="usuario">Identificador opcional de usuário/operador para fins de auditoria.</param>
+        /// <returns>1 se a chave for válida e a API responder com sucesso; 0 em caso de erro.</returns>
+        public int Login(string chaveSync, string usuario = "")
+        {
+            LogDebug("=== INICIANDO LOGIN / VALIDAÇÃO DE CHAVE ===");
+
+            if (!_inicializado || _httpClient == null)
+            {
+                _ultimoErro = "Cliente não inicializado. Chame MtbInicializarAPI primeiro.";
+                LogDebug("ERRO: " + _ultimoErro);
+                return 0;
+            }
+
+            string chave = !string.IsNullOrWhiteSpace(chaveSync) ? chaveSync.Trim() : (usuario ?? "").Trim();
+
+            if (string.IsNullOrEmpty(chave))
+            {
+                _ultimoErro = "Chave de integração (X-Sync-Key) não informada.";
+                LogDebug("ERRO: " + _ultimoErro);
+                return 0;
+            }
+
+            _syncKey = chave;
+            _httpClient.DefaultRequestHeaders.Remove("X-Sync-Key");
+            _httpClient.DefaultRequestHeaders.Add("X-Sync-Key", _syncKey);
+
+            try
+            {
+                LogDebug("Testando conexão e validando chave X-Sync-Key na API...");
+
+                // Faz um probe seguro enviando um lote vazio de empresas para validar a chave
+                var content = new StringContent("{\"empresas\":[]}", Encoding.UTF8, "application/json");
+
+                var response = Task.Run(async () =>
+                    await _httpClient.PostAsync("api/sync/empresas", content).ConfigureAwait(false)
+                ).GetAwaiter().GetResult();
+
+                var responseString = Task.Run(async () =>
+                    await response.Content.ReadAsStringAsync().ConfigureAwait(false)
+                ).GetAwaiter().GetResult();
+
+                _ultimaResposta = responseString;
+                LogHttpDetails("POST", "api/sync/empresas", "{\"empresas\":[]}", response, responseString);
+
+                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    _syncKey = "";
+                    _httpClient.DefaultRequestHeaders.Remove("X-Sync-Key");
+                    _ultimoErro = "Chave de integração inválida (HTTP 401 Unauthorized). Verifique a chave configurada.";
+                    LogDebug("ERRO: " + _ultimoErro);
+                    return 0;
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _syncKey = "";
+                    _httpClient.DefaultRequestHeaders.Remove("X-Sync-Key");
+                    _ultimoErro = $"Erro ao validar conexão com a API (HTTP {(int)response.StatusCode}): {responseString}";
+                    LogDebug("ERRO: " + _ultimoErro);
+                    return 0;
+                }
+
+                _ultimoErro = "";
+                LogDebug("Login OK: Chave X-Sync-Key validada com sucesso na API.");
+                return 1;
+            }
+            catch (Exception ex)
+            {
+                _syncKey = "";
+                _httpClient.DefaultRequestHeaders.Remove("X-Sync-Key");
+                _ultimoErro = $"Exceção ao conectar à API: {ex.Message}";
+                LogDebug("EXCEÇÃO: " + ex);
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Envia uma requisição POST com validação de resposta estruturada.
+        /// </summary>
+        public int EnviarPost(string endpoint, string jsonPayload)
+        {
+            _ultimaResposta = "";
+
+            if (!_inicializado || _httpClient == null)
+            {
+                _ultimoErro = "Cliente não inicializado.";
+                LogDebug("ERRO: " + _ultimoErro);
+                return 0;
+            }
+
+            if (string.IsNullOrEmpty(_syncKey))
+            {
+                _ultimoErro = "Não autenticado. Chame MtbLogin informando a chave de integração (X-Sync-Key).";
+                LogDebug("ERRO: " + _ultimoErro);
+                return 0;
+            }
+
+            try
+            {
+                string relativePath = endpoint.TrimStart('/');
+                var content = new StringContent(jsonPayload ?? "{}", Encoding.UTF8, "application/json");
+
+                LogDebug("=== ENVIANDO POST ===");
+                LogDebug("Endpoint: " + relativePath);
+                LogDebug("Payload: " + RedigirDadosSensiveis(jsonPayload));
+
+                HttpResponseMessage response = Task.Run(async () =>
+                    await _httpClient.PostAsync(relativePath, content).ConfigureAwait(false)
+                ).GetAwaiter().GetResult();
+
+                string responseString = Task.Run(async () =>
+                    await response.Content.ReadAsStringAsync().ConfigureAwait(false)
+                ).GetAwaiter().GetResult();
+
+                _ultimaResposta = responseString;
+                LogHttpDetails("POST", relativePath, jsonPayload, response, responseString);
+
+                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    _ultimoErro = "HTTP 401: Chave de integração inválida ou ausente (X-Sync-Key).";
+                    LogDebug("ERRO: " + _ultimoErro);
+                    return 0;
+                }
+
+                if ((int)response.StatusCode == 413)
+                {
+                    _ultimoErro = "HTTP 413: Lote ou tamanho de payload excedeu os limites suportados pela API.";
+                    LogDebug("ERRO: " + _ultimoErro);
+                    return 0;
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _ultimoErro = $"HTTP {(int)response.StatusCode}: {responseString}";
+                    LogDebug("ERRO: " + _ultimoErro);
+                    return 0;
+                }
+
+                // Analisa o retorno estruturado da API PHP para verificar se houve erros em itens
+                try
+                {
+                    var obj = JObject.Parse(responseString);
+                    bool sucesso = obj["sucesso"] != null && (bool)obj["sucesso"];
+                    int totalErros = obj["totalErros"] != null ? (int)obj["totalErros"] : 0;
+
+                    if (!sucesso || totalErros > 0)
+                    {
+                        string msg = obj["mensagem"]?.ToString() ?? "Erros no processamento do lote.";
+                        _ultimoErro = $"Aviso ({totalErros} erros): {msg}";
+                        LogDebug("AVISO: " + _ultimoErro);
+                        return 0;
+                    }
+
+                    _ultimoErro = "";
+                    LogDebug("Requisição processada com 100% de sucesso.");
+                    return 1;
+                }
+                catch (JsonException)
+                {
+                    _ultimoErro = "";
+                    return 1;
+                }
+            }
+            catch (Exception ex)
+            {
+                _ultimoErro = $"Exceção ao enviar POST: {ex.Message}";
+                LogDebug("EXCEÇÃO: " + ex);
+                return 0;
+            }
+        }
+
+        private string EnveloparSeNecessario(string json, string containerKey)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return "{\"" + containerKey + "\":[]}";
+            string trimmed = json.Trim();
+            if (trimmed.StartsWith("["))
+            {
+                return "{\"" + containerKey + "\":" + trimmed + "}";
+            }
+            return trimmed;
+        }
+
+        public int EnviarOrdens(string jsonOrdens)
+        {
+            string payload = EnveloparSeNecessario(jsonOrdens, "ordens");
+            return EnviarPost("api/sync/ordens", payload);
+        }
+
+        public int EnviarEmpresas(string jsonEmpresas)
+        {
+            string payload = EnveloparSeNecessario(jsonEmpresas, "empresas");
+            return EnviarPost("api/sync/empresas", payload);
+        }
+
+        public int EnviarUsuarios(string jsonUsuarios)
+        {
+            string payload = EnveloparSeNecessario(jsonUsuarios, "usuarios");
+            return EnviarPost("api/sync/usuarios", payload);
+        }
+
+        public int AtualizarStatus(string jsonStatus)
+        {
+            string payload = EnveloparSeNecessario(jsonStatus, "updates");
+            return EnviarPost("api/sync/status", payload);
+        }
+
+        public string ObterSenhaHash(string password)
+        {
+            if (string.IsNullOrEmpty(password))
+                return "";
+
+            using (var sha256 = SHA256.Create())
+            {
+                var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+                return Convert.ToBase64String(hashedBytes);
+            }
+        }
+
+        public string ObterUltimoErro() => _ultimoErro;
+        public string ObterUltimaResposta() => _ultimaResposta;
 
         private void LogDebug(string mensagem)
         {
             LogService.AddToSubfolder(mensagem, "VivaMoto_Debug");
+        }
+
+        private string RedigirDadosSensiveis(string texto)
+        {
+            if (string.IsNullOrEmpty(texto)) return "";
+            var sanitizado = Regex.Replace(
+                texto,
+                @"(X-Sync-Key:\s*)([^\r\n]+)",
+                "$1[REDACTED]",
+                RegexOptions.IgnoreCase);
+            sanitizado = Regex.Replace(
+                sanitizado,
+                @"(""senha""\s*:\s*"")[^""]+("")",
+                "$1[REDACTED]$2",
+                RegexOptions.IgnoreCase);
+            return sanitizado;
         }
 
         private void LogHttpDetails(string method, string endpoint, string requestBody, HttpResponseMessage response, string responseBody)
@@ -73,37 +343,26 @@ namespace CSharpUtil.Motoboy
                 {
                     foreach (var header in _httpClient.DefaultRequestHeaders)
                     {
-                        requestHeaders.AppendLine(string.Format("{0}: {1}", header.Key, string.Join(", ", header.Value)));
-                    }
-                }
-
-                var responseHeaders = new StringBuilder();
-                if (response?.Headers != null)
-                {
-                    foreach (var header in response.Headers)
-                    {
-                        responseHeaders.AppendLine(string.Format("{0}: {1}", header.Key, string.Join(", ", header.Value)));
-                    }
-                }
-                if (response?.Content?.Headers != null)
-                {
-                    foreach (var header in response.Content.Headers)
-                    {
-                        responseHeaders.AppendLine(string.Format("{0}: {1}", header.Key, string.Join(", ", header.Value)));
+                        string valor = header.Key.Equals("X-Sync-Key", StringComparison.OrdinalIgnoreCase)
+                            ? "[REDACTED]"
+                            : string.Join(", ", header.Value);
+                        requestHeaders.AppendLine($"{header.Key}: {valor}");
                     }
                 }
 
                 string responseStatus = response != null
-                    ? string.Format("{0} ({1})", (int)response.StatusCode, response.ReasonPhrase)
+                    ? $"{(int)response.StatusCode} ({response.ReasonPhrase})"
                     : "N/A";
+
+                string safeBody = RedigirDadosSensiveis(requestBody);
 
                 LogService.LogHttpRequest(
                     method,
                     _baseUrl + endpoint,
                     requestHeaders.ToString(),
-                    requestBody ?? "",
+                    safeBody,
                     responseStatus,
-                    responseHeaders.ToString(),
+                    "",
                     responseBody ?? ""
                 );
             }
@@ -113,256 +372,19 @@ namespace CSharpUtil.Motoboy
             }
         }
 
-        /// <summary>
-        /// Realiza login na API VivaMoto.
-        /// </summary>
-        public int Login(string email, string senha)
-        {
-            LogDebug("=== INICIANDO LOGIN ===");
-            LogDebug("Email: " + email);
-
-            if (!_inicializado || _httpClient == null)
-            {
-                _ultimoErro = "Cliente não inicializado.";
-                LogDebug("ERRO: " + _ultimoErro);
-                return 0;
-            }
-
-            try
-            {
-                var loginData = new { Email = email, Senha = senha, LembrarMe = false };
-                var json = JsonConvert.SerializeObject(loginData);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                LogDebug("Enviando requisição de login...");
-
-                var response = _httpClient.PostAsync("/api/v1/auth/login", content).Result;
-                var responseString = response.Content.ReadAsStringAsync().Result;
-                _ultimaResposta = responseString;
-
-                LogHttpDetails("POST", "/api/v1/auth/login", json, response, responseString);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var loginResponse = Newtonsoft.Json.Linq.JObject.Parse(responseString);
-
-                    var sucessoToken = loginResponse["sucesso"];
-                    var tokenToken = loginResponse["token"];
-                    
-                    var sucesso = sucessoToken != null && (bool)sucessoToken;
-                    var token = tokenToken?.ToString();
-
-                    if (sucesso && !string.IsNullOrEmpty(token))
-                    {
-                        _authToken = token;
-                        _httpClient.DefaultRequestHeaders.Authorization =
-                            new AuthenticationHeaderValue("Bearer", _authToken);
-
-                        LogDebug("Login bem-sucedido. Token obtido (primeiros 20 chars): " +
-                            (_authToken.Length > 20 ? _authToken.Substring(0, 20) + "..." : _authToken));
-
-                        _ultimoErro = "";
-                        return 1;
-                    }
-
-                    var mensagemToken = loginResponse["mensagem"];
-                    _ultimoErro = mensagemToken?.ToString() ?? "Login falhou sem mensagem de erro.";
-                    LogDebug("ERRO: " + _ultimoErro);
-                    return 0;
-                }
-
-                _ultimoErro = $"HTTP {(int)response.StatusCode}: {responseString}";
-                LogDebug("ERRO: " + _ultimoErro);
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                _ultimoErro = $"Exceção no login: {ex.Message}";
-                LogDebug("EXCEÇÃO: " + ex.ToString());
-                return 0;
-            }
-        }
-
-        /// <summary>
-        /// Envia uma requisição POST genérica para um endpoint da API.
-        /// O JSON deve estar no formato esperado pela API (responsabilidade do backend tratar).
-        /// </summary>
-        public int EnviarPost(string endpoint, string jsonPayload)
-        {
-            _ultimaResposta = "";
-
-            LogDebug("=== ENVIANDO POST ===");
-            LogDebug("Endpoint: " + endpoint);
-            LogDebug("Payload: " + jsonPayload);
-
-            //MessageBox.Show("(!_inicializado || _httpClient == null)");
-
-            if (!_inicializado || _httpClient == null)
-            {
-                _ultimoErro = "Cliente não inicializado.";
-                LogDebug("ERRO: " + _ultimoErro);
-                return 0;
-            }
-
-            //MessageBox.Show("(string.IsNullOrEmpty(_authToken))");
-
-            if (string.IsNullOrEmpty(_authToken))
-            {
-                _ultimoErro = "Não autenticado. Chame Login primeiro.";
-                LogDebug("ERRO: " + _ultimoErro);
-                return 0;
-            }
-
-            //MessageBox.Show("try catch");
-
-            try
-            {
-                //MessageBox.Show("var content = new StringContent(jsonPayload ?? \"{}\", Encoding.UTF8, \"application/json\");");
-
-                var content = new StringContent(jsonPayload ?? "{}", Encoding.UTF8, "application/json");
-
-                // Log dos headers para diagnóstico
-                LogDebug("Headers da requisição:");
-                LogDebug("  Content-Type: " + content.Headers.ContentType?.ToString());
-                LogDebug("  Accept: " + string.Join(", ", _httpClient.DefaultRequestHeaders.Accept));
-
-                //MessageBox.Show("if (_httpClient.DefaultRequestHeaders.Authorization != null)");
-
-                if (_httpClient.DefaultRequestHeaders.Authorization != null)
-                {
-                    LogDebug("  Authorization: Bearer [TOKEN PRESENTE]");
-                }
-                LogDebug("Enviando requisição POST...");
-
-                //MessageBox.Show("var response = _httpClient.PostAsync(endpoint, content).Result;");
-
-                var response = _httpClient.PostAsync(endpoint, content).Result;
-                _ultimaResposta = response.Content.ReadAsStringAsync().Result;
-
-                LogHttpDetails("POST", endpoint, jsonPayload, response, _ultimaResposta);
-
-                //MessageBox.Show("if (response.IsSuccessStatusCode) = "+ response.IsSuccessStatusCode);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    //MessageBox.Show("Requisição bem-sucedida");
-
-                    LogDebug("Requisição bem-sucedida");
-                    _ultimoErro = "";
-                    return 1;
-                }
-                else
-                {
-                    _ultimoErro = $"HTTP {(int)response.StatusCode}: {_ultimaResposta}";
-
-                    //MessageBox.Show("_ultimoErro = " + _ultimoErro);
-
-                    LogDebug("ERRO: " + _ultimoErro);
-                    return 0;
-                }
-            }
-            catch (Exception ex)
-            {
-                _ultimoErro = $"Exceção ao enviar POST: {ex.Message}";
-
-                //MessageBox.Show("catch _ultimoErro = " + _ultimoErro);
-
-                LogDebug("EXCEÇÃO: " + ex.ToString());
-                return 0;
-            }
-        }
-
-        /// <summary>
-        /// Envia dados para o endpoint de sincronização de ordens.
-        /// </summary>
-        public int EnviarOrdens(string jsonOrdens)
-        {
-            LogDebug("EnviarPost(\"/api/v1/sync/ordens \""+jsonOrdens+")");
-
-            return EnviarPost("/api/v1/sync/ordens", jsonOrdens);
-        }
-
-        /// <summary>
-        /// Envia dados para o endpoint de sincronização de empresas.
-        /// </summary>
-        public int EnviarEmpresas(string jsonEmpresas)
-        {
-            return EnviarPost("/api/v1/sync/empresas", jsonEmpresas);
-        }
-
-        /// <summary>
-        /// Envia dados para o endpoint de sincronização de usuários.
-        /// </summary>
-        public int EnviarUsuarios(string jsonUsuarios)
-        {
-            return EnviarPost("/api/v1/sync/usuarios", jsonUsuarios);
-        }
-
-        /// <summary>
-        /// Envia dados para o endpoint de atualização de status.
-        /// </summary>
-        public int AtualizarStatus(string jsonStatus)
-        {
-            return EnviarPost("/api/v1/sync/status", jsonStatus);
-        }
-
-        /// <summary>
-        /// Gera um hash SHA-256 da senha fornecida e retorna em formato Base64.
-        /// </summary>
-        public string ObterSenhaHash(string password)
-        {
-            //MessageBox.Show("Entre ObterSenhaHash: " + password);
-
-            if (string.IsNullOrEmpty(password))
-                return "";
-
-            SHA256 sha256 = SHA256.Create();
-            //MessageBox.Show("Senha: " + password);
-            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            var result = Convert.ToBase64String(hashedBytes);
-            //MessageBox.Show("Senha Hash: " + result);
-            return result;
-            
-
-            //using (var sha256 = SHA256.Create())
-            //{
-            //    MessageBox.Show("Senha: " + password);
-            //    var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            //    var result = Convert.ToBase64String(hashedBytes);
-            //    MessageBox.Show("Senha Hash: " + result);
-            //    return result;
-            //}
-        }
-
-        /// <summary>
-        /// Obtém a última mensagem de erro ocorrida.
-        /// </summary>
-        public string ObterUltimoErro()
-        {
-            return _ultimoErro;
-        }
-
-        /// <summary>
-        /// Obtém o JSON da última resposta recebida da API.
-        /// </summary>
-        public string ObterUltimaResposta()
-        {
-            return _ultimaResposta;
-        }
-
-
-        /// <summary>
-        /// Finaliza o serviço e libera recursos.
-        /// </summary>
         public void Finalizar()
         {
-            LogDebug("=== FINALIZANDO VIVAMOTOAPISERVICE ===");
             _httpClient?.Dispose();
             _httpClient = null;
-            _authToken = "";
+            _syncKey = "";
             _ultimoErro = "";
             _ultimaResposta = "";
             _inicializado = false;
+        }
+
+        public void Dispose()
+        {
+            Finalizar();
         }
     }
 }
