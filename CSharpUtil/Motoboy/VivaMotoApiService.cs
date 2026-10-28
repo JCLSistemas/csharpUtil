@@ -2,6 +2,7 @@ using CSharpUtil.Services;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -92,9 +93,8 @@ namespace CSharpUtil.Motoboy
         /// Envia uma sonda de teste para comprovar conectividade e autorização na API.
         /// </summary>
         /// <param name="chaveSync">Chave de integração secreta (X-Sync-Key) configurada no portal.</param>
-        /// <param name="usuario">Identificador opcional de usuário/operador para fins de auditoria.</param>
         /// <returns>1 se a chave for válida e a API responder com sucesso; 0 em caso de erro.</returns>
-        public int Login(string chaveSync, string usuario = "")
+        public int Login(string chaveSync)
         {
             LogDebug("=== INICIANDO LOGIN / VALIDAÇÃO DE CHAVE ===");
 
@@ -105,7 +105,7 @@ namespace CSharpUtil.Motoboy
                 return 0;
             }
 
-            string chave = !string.IsNullOrWhiteSpace(chaveSync) ? chaveSync.Trim() : (usuario ?? "").Trim();
+            string chave = !string.IsNullOrWhiteSpace(chaveSync) ? chaveSync.Trim() : _syncKey;
 
             if (string.IsNullOrEmpty(chave))
             {
@@ -267,10 +267,63 @@ namespace CSharpUtil.Motoboy
         {
             if (string.IsNullOrWhiteSpace(json)) return "{\"" + containerKey + "\":[]}";
             string trimmed = json.Trim();
+
+            // Se for um array puro: [ {...}, {...} ]
             if (trimmed.StartsWith("["))
             {
                 return "{\"" + containerKey + "\":" + trimmed + "}";
             }
+
+            // Se for um objeto JSON: { ... }
+            if (trimmed.StartsWith("{"))
+            {
+                // 1. Normalização via Regex para corrigir inconsistências de maiúsculas/minúsculas no nó raiz
+                // Ex: "Empresas": [ ... ] -> "empresas": [ ... ]
+                //     "Ordens": [ ... ]   -> "ordens": [ ... ]
+                //     "Usuarios": [ ... ] -> "usuarios": [ ... ]
+                //     "Updates": [ ... ] ou "Atualizacoes": [ ... ] -> "updates": [ ... ]
+                string pattern = containerKey.Equals("updates", StringComparison.OrdinalIgnoreCase)
+                    ? @"^(\s*\{\s*)""(?:updates|atualizacoes)""(\s*:)"
+                    : @"^(\s*\{\s*)""" + Regex.Escape(containerKey) + @"""(\s*:)";
+
+                if (Regex.IsMatch(trimmed, pattern, RegexOptions.IgnoreCase))
+                {
+                    return Regex.Replace(trimmed, pattern, "$1\"" + containerKey + "\"$2", RegexOptions.IgnoreCase);
+                }
+
+                // 2. Tratamento defensivo via JToken caso o JSON seja um único item ou contenha a chave em outra formatação
+                try
+                {
+                    var token = JToken.Parse(trimmed);
+                    if (token is JObject obj)
+                    {
+                        var prop = obj.Properties().FirstOrDefault(p =>
+                            string.Equals(p.Name, containerKey, StringComparison.OrdinalIgnoreCase) ||
+                            (containerKey == "updates" && string.Equals(p.Name, "atualizacoes", StringComparison.OrdinalIgnoreCase)));
+
+                        if (prop != null)
+                        {
+                            if (prop.Name != containerKey)
+                            {
+                                var val = prop.Value;
+                                prop.Remove();
+                                obj.Add(containerKey, val);
+                                return obj.ToString(Formatting.None);
+                            }
+                            return trimmed;
+                        }
+
+                        // Se é um objeto simples (ex: { "id": "...", "nome": "..." }) sem contêiner de lote,
+                        // envolve o item único dentro de um array no formato esperado pela API
+                        return "{\"" + containerKey + "\":[" + trimmed + "]}";
+                    }
+                }
+                catch
+                {
+                    // Em caso de falha de parsing, preserva o payload original
+                }
+            }
+
             return trimmed;
         }
 

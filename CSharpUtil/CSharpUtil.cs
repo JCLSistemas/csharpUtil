@@ -160,13 +160,7 @@ namespace CSharpUtil
         private static VivaMotoApiService _client;
 
         [DllExport("MtbInicializarAPI", CallingConvention = CallingConvention.StdCall)]
-        public static void MtbInicializarAPI([MarshalAs(UnmanagedType.LPStr)] string urlBase)
-        {
-            _client = new VivaMotoApiService(urlBase);
-        }
-
-        [DllExport("MtbInicializarAPIComChave", CallingConvention = CallingConvention.StdCall)]
-        public static void MtbInicializarAPIComChave([MarshalAs(UnmanagedType.LPStr)] string urlBase, [MarshalAs(UnmanagedType.LPStr)] string chaveSync)
+        public static void MtbInicializarAPI([MarshalAs(UnmanagedType.LPStr)] string urlBase, [MarshalAs(UnmanagedType.LPStr)] string chaveSync)
         {
             _client = new VivaMotoApiService(urlBase, chaveSync);
         }
@@ -181,17 +175,10 @@ namespace CSharpUtil
         }
 
         [DllExport("MtbLogin", CallingConvention = CallingConvention.StdCall)]
-        public static int MtbLogin(string chaveSync, string usuario)
+        public static int MtbLogin(string chaveSync)
         {
             if (_client == null) return 0;
-            return _client.Login(chaveSync, usuario);
-        }
-
-        [DllExport("MtbLoginChave", CallingConvention = CallingConvention.StdCall)]
-        public static int MtbLoginChave(string chaveSync)
-        {
-            if (_client == null) return 0;
-            return _client.Login(chaveSync, "");
+            return _client.Login(chaveSync);
         }
 
         [DllExport("MtbConfigurarDebug", CallingConvention = CallingConvention.StdCall)]
